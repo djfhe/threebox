@@ -248,9 +248,8 @@ SunCalc.getMoonTimes = (date, lat, lng, inUTC) => {
   if (inUTC) t.setUTCHours(0, 0, 0, 0);
   else t.setHours(0, 0, 0, 0);
 
-  const hc = 0.133 * rad,
-    h0 =
-      SunCalc.getMoonPosition(t, lat, lng).altitude - hc;
+  const hc = 0.133 * rad;
+  let h0 =SunCalc.getMoonPosition(t, lat, lng).altitude - hc;
   let h1, h2, rise, set, a, b, xe, ye, d, roots, x1, x2, dx;
 
   // go in 2-hour chunks, each time seeing if a 3-point quadratic curve crosses zero
