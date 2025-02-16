@@ -1,5 +1,70 @@
-const THREE = require('../../three.js');
+import {
+  Loader,
+  LoaderUtils,
+  FileLoader,
+  Color,
+  DirectionalLight,
+  PointLight,
+  SpotLight,
+  MeshBasicMaterial,
+  MeshPhysicalMaterial,
+  Vector2,
+  SRGBColorSpace,
+  MeshStandardMaterial,
+  TangentSpaceNormalMap,
+  Interpolant,
+  Quaternion,
+  NearestFilter,
+  LinearFilter,
+  NearestMipmapNearestFilter,
+  LinearMipmapNearestFilter,
+  NearestMipmapLinearFilter,
+  LinearMipmapLinearFilter,
+  ClampToEdgeWrapping,
+  MirroredRepeatWrapping,
+  RepeatWrapping,
+  InterpolateLinear,
+  BufferAttribute,
+  Texture,
+  RGBAFormat,
+  PointsMaterial,
+  Material,
+  LineBasicMaterial,
+  DoubleSide,
+  PropertyBinding,
+  BufferGeometry,
+  SkinnedMesh,
+  Mesh,
+  TriangleStripDrawMode,
+  TriangleFanDrawMode,
+  LineSegments,
+  Line,
+  LineLoop,
+  Points,
+  Group,
+  PerspectiveCamera,
+  MathUtils,
+  OrthographicCamera,
+  NumberKeyframeTrack,
+  QuaternionKeyframeTrack,
+  VectorKeyframeTrack,
+  AnimationClip,
+  Bone,
+  Object3D,
+  Matrix4,
+  Skeleton,
+  Box3,
+  Vector3,
+  Sphere,
+} from 'three';
 
+import { InterpolateDiscrete, FrontSide } from 'three/src/constants.js';
+
+import { ImageBitmapLoader } from 'three/src/loaders/ImageBitmapLoader.js';
+import { TextureLoader } from 'three/src/loaders/TextureLoader.js';
+import { GLTFLoader as _GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { InterleavedBuffer } from 'three/src/core/InterleavedBuffer.js';
+import { InterleavedBufferAttribute } from 'three/src/core/InterleavedBufferAttribute.js';
 /**
  * @author Rich Tibbett / https://github.com/richtr
  * @author mrdoob / http://mrdoob.com/
@@ -7,10 +72,8 @@ const THREE = require('../../three.js');
  * @author Takahiro / https://github.com/takahirox
  * @author Don McCurdy / https://www.donmccurdy.com
  */
-
-(function () {
-
-	class GLTFLoader extends THREE.Loader {
+const decoder = new TextDecoder()
+	class GLTFLoader extends Loader {
 
 		constructor(manager) {
 
@@ -82,7 +145,7 @@ const THREE = require('../../three.js');
 
 			} else {
 
-				resourcePath = THREE.LoaderUtils.extractUrlBase(url);
+				resourcePath = LoaderUtils.extractUrlBase(url);
 
 			} // Tells the LoadingManager to track an extra item, which resolves after
 			// the model is fully loaded. This means the count of items loaded will
@@ -108,7 +171,7 @@ const THREE = require('../../three.js');
 
 			};
 
-			const loader = new THREE.FileLoader(this.manager);
+			const loader = new FileLoader(this.manager);
 			loader.setPath(this.path);
 			loader.setResponseType('arraybuffer');
 			loader.setRequestHeader(this.requestHeader);
@@ -196,8 +259,7 @@ const THREE = require('../../three.js');
 				content = data;
 
 			} else {
-
-				const magic = THREE.LoaderUtils.decodeText(new Uint8Array(data, 0, 4));
+				const magic = decoder.decode(new Uint8Array(data, 0, 4));
 
 				if (magic === BINARY_EXTENSION_HEADER_MAGIC) {
 
@@ -216,7 +278,7 @@ const THREE = require('../../three.js');
 
 				} else {
 
-					content = THREE.LoaderUtils.decodeText(new Uint8Array(data));
+					content = decoder.decode(new Uint8Array(data));
 
 				}
 
@@ -406,25 +468,25 @@ const THREE = require('../../three.js');
 			const lightDefs = extensions.lights || [];
 			const lightDef = lightDefs[lightIndex];
 			let lightNode;
-			const color = new THREE.Color(0xffffff);
+			const color = new Color(0xffffff);
 			if (lightDef.color !== undefined) color.fromArray(lightDef.color);
 			const range = lightDef.range !== undefined ? lightDef.range : 0;
 
 			switch (lightDef.type) {
 
 				case 'directional':
-					lightNode = new THREE.DirectionalLight(color);
+					lightNode = new DirectionalLight(color);
 					lightNode.target.position.set(0, 0, - 1);
 					lightNode.add(lightNode.target);
 					break;
 
 				case 'point':
-					lightNode = new THREE.PointLight(color);
+					lightNode = new PointLight(color);
 					lightNode.distance = range;
 					break;
 
 				case 'spot':
-					lightNode = new THREE.SpotLight(color);
+					lightNode = new SpotLight(color);
 					lightNode.distance = range; // Handle spotlight properties.
 
 					lightDef.spot = lightDef.spot || {};
@@ -488,14 +550,14 @@ const THREE = require('../../three.js');
 
 		getMaterialType() {
 
-			return THREE.MeshBasicMaterial;
+			return MeshBasicMaterial;
 
 		}
 
 		extendParams(materialParams, materialDef, parser) {
 
 			const pending = [];
-			materialParams.color = new THREE.Color(1.0, 1.0, 1.0);
+			materialParams.color = new Color(1.0, 1.0, 1.0);
 			materialParams.opacity = 1.0;
 			const metallicRoughness = materialDef.pbrMetallicRoughness;
 
@@ -543,7 +605,7 @@ const THREE = require('../../three.js');
 			const parser = this.parser;
 			const materialDef = parser.json.materials[materialIndex];
 			if (!materialDef.extensions || !materialDef.extensions[this.name]) return null;
-			return THREE.MeshPhysicalMaterial;
+			return MeshPhysicalMaterial;
 
 		}
 
@@ -593,7 +655,7 @@ const THREE = require('../../three.js');
 
 					const scale = extension.clearcoatNormalTexture.scale; // https://github.com/mrdoob/three.js/issues/11438#issuecomment-507003995
 
-					materialParams.clearcoatNormalScale = new THREE.Vector2(scale, - scale);
+					materialParams.clearcoatNormalScale = new Vector2(scale, - scale);
 
 				}
 
@@ -626,7 +688,7 @@ const THREE = require('../../three.js');
 			const parser = this.parser;
 			const materialDef = parser.json.materials[materialIndex];
 			if (!materialDef.extensions || !materialDef.extensions[this.name]) return null;
-			return THREE.MeshPhysicalMaterial;
+			return MeshPhysicalMaterial;
 
 		}
 
@@ -682,7 +744,7 @@ const THREE = require('../../three.js');
 			const parser = this.parser;
 			const materialDef = parser.json.materials[materialIndex];
 			if (!materialDef.extensions || !materialDef.extensions[this.name]) return null;
-			return THREE.MeshPhysicalMaterial;
+			return MeshPhysicalMaterial;
 
 		}
 
@@ -709,7 +771,7 @@ const THREE = require('../../three.js');
 
 			materialParams.attenuationDistance = extension.attenuationDistance || 0;
 			const colorArray = extension.attenuationColor || [1, 1, 1];
-			materialParams.attenuationTint = new THREE.Color(colorArray[0], colorArray[1], colorArray[2]);
+			materialParams.attenuationTint = new Color(colorArray[0], colorArray[1], colorArray[2]);
 			return Promise.all(pending);
 
 		}
@@ -736,7 +798,7 @@ const THREE = require('../../three.js');
 			const parser = this.parser;
 			const materialDef = parser.json.materials[materialIndex];
 			if (!materialDef.extensions || !materialDef.extensions[this.name]) return null;
-			return THREE.MeshPhysicalMaterial;
+			return MeshPhysicalMaterial;
 
 		}
 
@@ -779,7 +841,7 @@ const THREE = require('../../three.js');
 			const parser = this.parser;
 			const materialDef = parser.json.materials[materialIndex];
 			if (!materialDef.extensions || !materialDef.extensions[this.name]) return null;
-			return THREE.MeshPhysicalMaterial;
+			return MeshPhysicalMaterial;
 
 		}
 
@@ -805,13 +867,13 @@ const THREE = require('../../three.js');
 			}
 
 			const colorArray = extension.specularColorFactor || [1, 1, 1];
-			materialParams.specularTint = new THREE.Color(colorArray[0], colorArray[1], colorArray[2]);
+			materialParams.specularColor = new Color(colorArray[0], colorArray[1], colorArray[2]);
 
 			if (extension.specularColorTexture !== undefined) {
 
 				pending.push(parser.assignTexture(materialParams, 'specularTintMap', extension.specularColorTexture).then(function (texture) {
 
-					texture.encoding = THREE.sRGBEncoding;
+					texture.encoding = SRGBColorSpace;
 
 				}));
 
@@ -1033,7 +1095,7 @@ const THREE = require('../../three.js');
 	};
 
 	class GLTFBinaryExtension {
-
+f
 		constructor(data) {
 
 			this.name = EXTENSIONS.KHR_BINARY_GLTF;
@@ -1041,7 +1103,7 @@ const THREE = require('../../three.js');
 			this.body = null;
 			const headerView = new DataView(data, 0, BINARY_EXTENSION_HEADER_LENGTH);
 			this.header = {
-				magic: THREE.LoaderUtils.decodeText(new Uint8Array(data.slice(0, 4))),
+				magic: decoder.decode(new Uint8Array(data.slice(0, 4))),
 				version: headerView.getUint32(4, true),
 				length: headerView.getUint32(8, true)
 			};
@@ -1070,7 +1132,7 @@ const THREE = require('../../three.js');
 				if (chunkType === BINARY_EXTENSION_CHUNK_TYPES.JSON) {
 
 					const contentArray = new Uint8Array(data, BINARY_EXTENSION_HEADER_LENGTH + chunkIndex, chunkLength);
-					this.content = THREE.LoaderUtils.decodeText(contentArray);
+					this.content = decoder.decode(contentArray);
 
 				} else if (chunkType === BINARY_EXTENSION_CHUNK_TYPES.BIN) {
 
@@ -1243,7 +1305,7 @@ const THREE = require('../../three.js');
  */
 
 
-	class GLTFMeshStandardSGMaterial extends THREE.MeshStandardMaterial {
+	class GLTFMeshStandardSGMaterial extends MeshStandardMaterial {
 
 		constructor(params) {
 
@@ -1257,7 +1319,7 @@ const THREE = require('../../three.js');
 			const lightPhysicalFragmentChunk = ['PhysicalMaterial material;', 'material.diffuseColor = diffuseColor.rgb * ( 1. - max( specularFactor.r, max( specularFactor.g, specularFactor.b ) ) );', 'vec3 dxy = max( abs( dFdx( geometryNormal ) ), abs( dFdy( geometryNormal ) ) );', 'float geometryRoughness = max( max( dxy.x, dxy.y ), dxy.z );', 'material.roughness = max( 1.0 - glossinessFactor, 0.0525 ); // 0.0525 corresponds to the base mip of a 256 cubemap.', 'material.roughness += geometryRoughness;', 'material.roughness = min( material.roughness, 1.0 );', 'material.specularColor = specularFactor;'].join('\n');
 			const uniforms = {
 				specular: {
-					value: new THREE.Color().setHex(0xffffff)
+					value: new Color().setHex(0xffffff)
 				},
 				glossiness: {
 					value: 1
@@ -1398,7 +1460,7 @@ const THREE = require('../../three.js');
 		extendParams(materialParams, materialDef, parser) {
 
 			const pbrSpecularGlossiness = materialDef.extensions[this.name];
-			materialParams.color = new THREE.Color(1.0, 1.0, 1.0);
+			materialParams.color = new Color(1.0, 1.0, 1.0);
 			materialParams.opacity = 1.0;
 			const pending = [];
 
@@ -1416,9 +1478,9 @@ const THREE = require('../../three.js');
 
 			}
 
-			materialParams.emissive = new THREE.Color(0.0, 0.0, 0.0);
+			materialParams.emissive = new Color(0.0, 0.0, 0.0);
 			materialParams.glossiness = pbrSpecularGlossiness.glossinessFactor !== undefined ? pbrSpecularGlossiness.glossinessFactor : 1.0;
-			materialParams.specular = new THREE.Color(1.0, 1.0, 1.0);
+			materialParams.specular = new Color(1.0, 1.0, 1.0);
 
 			if (Array.isArray(pbrSpecularGlossiness.specularFactor)) {
 
@@ -1454,7 +1516,7 @@ const THREE = require('../../three.js');
 			material.bumpMap = materialParams.bumpMap === undefined ? null : materialParams.bumpMap;
 			material.bumpScale = 1;
 			material.normalMap = materialParams.normalMap === undefined ? null : materialParams.normalMap;
-			material.normalMapType = THREE.TangentSpaceNormalMap;
+			material.normalMapType = TangentSpaceNormalMap;
 			if (materialParams.normalScale) material.normalScale = materialParams.normalScale;
 			material.displacementMap = null;
 			material.displacementScale = 1;
@@ -1497,7 +1559,7 @@ const THREE = require('../../three.js');
 	// Specification: https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#appendix-c-spline-interpolation
 
 
-	class GLTFCubicSplineInterpolant extends THREE.Interpolant {
+	class GLTFCubicSplineInterpolant extends Interpolant {
 
 		constructor(parameterPositions, sampleValues, sampleSize, resultBuffer) {
 
@@ -1566,7 +1628,7 @@ const THREE = require('../../three.js');
 
 	};
 
-	const _q = new THREE.Quaternion();
+	const _q = new Quaternion();
 
 	class GLTFCubicSplineQuaternionInterpolant extends GLTFCubicSplineInterpolant {
 
@@ -1620,17 +1682,17 @@ const THREE = require('../../three.js');
 		5126: Float32Array
 	};
 	const WEBGL_FILTERS = {
-		9728: THREE.NearestFilter,
-		9729: THREE.LinearFilter,
-		9984: THREE.NearestMipmapNearestFilter,
-		9985: THREE.LinearMipmapNearestFilter,
-		9986: THREE.NearestMipmapLinearFilter,
-		9987: THREE.LinearMipmapLinearFilter
+		9728: NearestFilter,
+		9729: LinearFilter,
+		9984: NearestMipmapNearestFilter,
+		9985: LinearMipmapNearestFilter,
+		9986: NearestMipmapLinearFilter,
+		9987: LinearMipmapLinearFilter
 	};
 	const WEBGL_WRAPPINGS = {
-		33071: THREE.ClampToEdgeWrapping,
-		33648: THREE.MirroredRepeatWrapping,
-		10497: THREE.RepeatWrapping
+		33071: ClampToEdgeWrapping,
+		33648: MirroredRepeatWrapping,
+		10497: RepeatWrapping
 	};
 	const WEBGL_TYPE_SIZES = {
 		'SCALAR': 1,
@@ -1661,8 +1723,8 @@ const THREE = require('../../three.js');
 		CUBICSPLINE: undefined,
 		// We use a custom interpolant (GLTFCubicSplineInterpolation) for CUBICSPLINE tracks. Each
 		// keyframe track will be initialized with a default interpolation type, then modified.
-		LINEAR: THREE.InterpolateLinear,
-		STEP: THREE.InterpolateDiscrete
+		LINEAR: InterpolateLinear,
+		STEP: InterpolateDiscrete
 	};
 	const ALPHA_MODES = {
 		OPAQUE: 'OPAQUE',
@@ -1701,14 +1763,14 @@ const THREE = require('../../three.js');
 
 		if (cache['DefaultMaterial'] === undefined) {
 
-			cache['DefaultMaterial'] = new THREE.MeshStandardMaterial({
+			cache['DefaultMaterial'] = new MeshStandardMaterial({
 				color: 0xFFFFFF,
 				emissive: 0x000000,
 				metalness: 1,
 				roughness: 1,
 				transparent: false,
 				depthTest: true,
-				side: THREE.FrontSide
+				side: FrontSide
 			});
 
 		}
@@ -1955,17 +2017,17 @@ const THREE = require('../../three.js');
 
 			if (typeof createImageBitmap !== 'undefined' && /Firefox/.test(navigator.userAgent) === false) {
 
-				this.textureLoader = new THREE.ImageBitmapLoader(this.options.manager);
+				this.textureLoader = new ImageBitmapLoader(this.options.manager);
 
 			} else {
 
-				this.textureLoader = new THREE.TextureLoader(this.options.manager);
+				this.textureLoader = new TextureLoader(this.options.manager);
 
 			}
 
 			this.textureLoader.setCrossOrigin(this.options.crossOrigin);
 			this.textureLoader.setRequestHeader(this.options.requestHeader);
-			this.fileLoader = new THREE.FileLoader(this.options.manager);
+			this.fileLoader = new FileLoader(this.options.manager);
 			this.fileLoader.setResponseType('arraybuffer');
 
 			if (this.options.crossOrigin === 'use-credentials') {
@@ -2396,12 +2458,12 @@ const THREE = require('../../three.js');
 
 						array = new TypedArray(bufferView, ibSlice * byteStride, accessorDef.count * byteStride / elementBytes); // Integer parameters to IB/IBA are in array elements, not bytes.
 
-						ib = new THREE.InterleavedBuffer(array, byteStride / elementBytes);
+						ib = new InterleavedBuffer(array, byteStride / elementBytes);
 						parser.cache.add(ibCacheKey, ib);
 
 					}
 
-					bufferAttribute = new THREE.InterleavedBufferAttribute(ib, itemSize, byteOffset % byteStride / elementBytes, normalized);
+					bufferAttribute = new InterleavedBufferAttribute(ib, itemSize, byteOffset % byteStride / elementBytes, normalized);
 
 				} else {
 
@@ -2415,7 +2477,7 @@ const THREE = require('../../three.js');
 
 					}
 
-					bufferAttribute = new THREE.BufferAttribute(array, itemSize, normalized);
+					bufferAttribute = new BufferAttribute(array, itemSize, normalized);
 
 				} // https://github.com/KhronosGroup/glTF/blob/master/specification/2.0/README.md#sparse-accessors
 
@@ -2432,7 +2494,7 @@ const THREE = require('../../three.js');
 					if (bufferView !== null) {
 
 						// Avoid modifying the original ArrayBuffer, if the bufferView wasn't initialized with zeroes.
-						bufferAttribute = new THREE.BufferAttribute(bufferAttribute.array.slice(), bufferAttribute.itemSize, bufferAttribute.normalized);
+						bufferAttribute = new BufferAttribute(bufferAttribute.array.slice(), bufferAttribute.itemSize, bufferAttribute.normalized);
 
 					}
 
@@ -2510,7 +2572,7 @@ const THREE = require('../../three.js');
 					if (source.mimeType === 'image/png') {
 
 						// Inspect the PNG 'IHDR' chunk to determine whether the image could have an
-						// alpha channel. This check is conservative — the image could have an alpha
+						// alpha channel. This check is conservative ï¿½ the image could have an alpha
 						// channel with all values == 1, and the indexed type (colorType == 3) only
 						// sometimes contains alpha.
 						//
@@ -2545,7 +2607,7 @@ const THREE = require('../../three.js');
 
 						onLoad = function (imageBitmap) {
 
-							const texture = new THREE.Texture(imageBitmap);
+							const texture = new Texture(imageBitmap);
 							texture.needsUpdate = true;
 							resolve(texture);
 
@@ -2569,13 +2631,13 @@ const THREE = require('../../three.js');
 				texture.flipY = false;
 				if (textureDef.name) texture.name = textureDef.name; // When there is definitely no alpha channel in the texture, set THREE.RGBFormat to save space.
 
-				if (!hasAlpha) texture.format = THREE.RGBFormat;
+				if (!hasAlpha) texture.transparent = false;
 				const samplers = json.samplers || {};
 				const sampler = samplers[textureDef.sampler] || {};
-				texture.magFilter = WEBGL_FILTERS[sampler.magFilter] || THREE.LinearFilter;
-				texture.minFilter = WEBGL_FILTERS[sampler.minFilter] || THREE.LinearMipmapLinearFilter;
-				texture.wrapS = WEBGL_WRAPPINGS[sampler.wrapS] || THREE.RepeatWrapping;
-				texture.wrapT = WEBGL_WRAPPINGS[sampler.wrapT] || THREE.RepeatWrapping;
+				texture.magFilter = WEBGL_FILTERS[sampler.magFilter] || LinearFilter;
+				texture.minFilter = WEBGL_FILTERS[sampler.minFilter] || LinearMipmapLinearFilter;
+				texture.wrapS = WEBGL_WRAPPINGS[sampler.wrapS] || RepeatWrapping;
+				texture.wrapT = WEBGL_WRAPPINGS[sampler.wrapT] || RepeatWrapping;
 				parser.associations.set(texture, {
 					type: 'textures',
 					index: textureIndex
@@ -2659,8 +2721,8 @@ const THREE = require('../../three.js');
 
 				if (!pointsMaterial) {
 
-					pointsMaterial = new THREE.PointsMaterial();
-					THREE.Material.prototype.copy.call(pointsMaterial, material);
+					pointsMaterial = new PointsMaterial();
+					Material.prototype.copy.call(pointsMaterial, material);
 					pointsMaterial.color.copy(material.color);
 					pointsMaterial.map = material.map;
 					pointsMaterial.sizeAttenuation = false; // glTF spec says points should be 1px
@@ -2678,8 +2740,8 @@ const THREE = require('../../three.js');
 
 				if (!lineMaterial) {
 
-					lineMaterial = new THREE.LineBasicMaterial();
-					THREE.Material.prototype.copy.call(lineMaterial, material);
+					lineMaterial = new LineBasicMaterial();
+					Material.prototype.copy.call(lineMaterial, material);
 					lineMaterial.color.copy(material.color);
 					this.cache.add(cacheKey, lineMaterial);
 
@@ -2735,7 +2797,7 @@ const THREE = require('../../three.js');
 
 		getMaterialType() {
 
-			return THREE.MeshStandardMaterial;
+			return MeshStandardMaterial;
 
 		}
 		/**
@@ -2773,7 +2835,7 @@ const THREE = require('../../three.js');
 				// Specification:
 				// https://github.com/KhronosGroup/glTF/tree/master/specification/2.0#metallic-roughness-material
 				const metallicRoughness = materialDef.pbrMetallicRoughness || {};
-				materialParams.color = new THREE.Color(1.0, 1.0, 1.0);
+				materialParams.color = new Color(1.0, 1.0, 1.0);
 				materialParams.opacity = 1.0;
 
 				if (Array.isArray(metallicRoughness.baseColorFactor)) {
@@ -2815,7 +2877,7 @@ const THREE = require('../../three.js');
 
 			if (materialDef.doubleSided === true) {
 
-				materialParams.side = THREE.DoubleSide;
+				materialParams.side = DoubleSide;
 
 			}
 
@@ -2828,8 +2890,6 @@ const THREE = require('../../three.js');
 				materialParams.depthWrite = false;
 
 			} else {
-
-				materialParams.format = THREE.RGBFormat;
 				materialParams.transparent = false;
 
 				if (alphaMode === ALPHA_MODES.MASK) {
@@ -2840,11 +2900,11 @@ const THREE = require('../../three.js');
 
 			}
 
-			if (materialDef.normalTexture !== undefined && materialType !== THREE.MeshBasicMaterial) {
+			if (materialDef.normalTexture !== undefined && materialType !== MeshBasicMaterial) {
 
 				pending.push(parser.assignTexture(materialParams, 'normalMap', materialDef.normalTexture)); // https://github.com/mrdoob/three.js/issues/11438#issuecomment-507003995
 
-				materialParams.normalScale = new THREE.Vector2(1, - 1);
+				materialParams.normalScale = new Vector2(1, - 1);
 
 				if (materialDef.normalTexture.scale !== undefined) {
 
@@ -2854,7 +2914,7 @@ const THREE = require('../../three.js');
 
 			}
 
-			if (materialDef.occlusionTexture !== undefined && materialType !== THREE.MeshBasicMaterial) {
+			if (materialDef.occlusionTexture !== undefined && materialType !== MeshBasicMaterial) {
 
 				pending.push(parser.assignTexture(materialParams, 'aoMap', materialDef.occlusionTexture));
 
@@ -2866,13 +2926,13 @@ const THREE = require('../../three.js');
 
 			}
 
-			if (materialDef.emissiveFactor !== undefined && materialType !== THREE.MeshBasicMaterial) {
+			if (materialDef.emissiveFactor !== undefined && materialType !== MeshBasicMaterial) {
 
-				materialParams.emissive = new THREE.Color().fromArray(materialDef.emissiveFactor);
+				materialParams.emissive = new Color().fromArray(materialDef.emissiveFactor);
 
 			}
 
-			if (materialDef.emissiveTexture !== undefined && materialType !== THREE.MeshBasicMaterial) {
+			if (materialDef.emissiveTexture !== undefined && materialType !== MeshBasicMaterial) {
 
 				pending.push(parser.assignTexture(materialParams, 'emissiveMap', materialDef.emissiveTexture));
 
@@ -2894,8 +2954,8 @@ const THREE = require('../../three.js');
 
 				if (materialDef.name) material.name = materialDef.name; // baseColorTexture, emissiveTexture, and specularGlossinessTexture use sRGB encoding.
 
-				if (material.map) material.map.encoding = THREE.sRGBEncoding;
-				if (material.emissiveMap) material.emissiveMap.encoding = THREE.sRGBEncoding;
+				if (material.map) material.map.encoding = SRGBColorSpace;
+				if (material.emissiveMap) material.emissiveMap.encoding = SRGBColorSpace;
 				assignExtrasToUserData(material, materialDef);
 				parser.associations.set(material, {
 					type: 'materials',
@@ -2912,7 +2972,7 @@ const THREE = require('../../three.js');
 
 		createUniqueName(originalName) {
 
-			const sanitizedName = THREE.PropertyBinding.sanitizeNodeName(originalName || '');
+			const sanitizedName = PropertyBinding.sanitizeNodeName(originalName || '');
 			let name = sanitizedName;
 
 			for (let i = 1; this.nodeNamesUsed[name]; ++i) {
@@ -2977,7 +3037,7 @@ const THREE = require('../../three.js');
 					} else {
 
 						// Otherwise create a new geometry
-						geometryPromise = addPrimitiveAttributes(new THREE.BufferGeometry(), primitive, parser);
+						geometryPromise = addPrimitiveAttributes(new BufferGeometry(), primitive, parser);
 
 					} // Cache this geometry
 
@@ -3036,7 +3096,7 @@ const THREE = require('../../three.js');
 					if (primitive.mode === WEBGL_CONSTANTS.TRIANGLES || primitive.mode === WEBGL_CONSTANTS.TRIANGLE_STRIP || primitive.mode === WEBGL_CONSTANTS.TRIANGLE_FAN || primitive.mode === undefined) {
 
 						// .isSkinnedMesh isn't in glTF spec. See ._markDefs()
-						mesh = meshDef.isSkinnedMesh === true ? new THREE.SkinnedMesh(geometry, material) : new THREE.Mesh(geometry, material);
+						mesh = meshDef.isSkinnedMesh === true ? new SkinnedMesh(geometry, material) : new Mesh(geometry, material);
 
 						if (mesh.isSkinnedMesh === true && !mesh.geometry.attributes.skinWeight.normalized) {
 
@@ -3048,29 +3108,29 @@ const THREE = require('../../three.js');
 
 						if (primitive.mode === WEBGL_CONSTANTS.TRIANGLE_STRIP) {
 
-							mesh.geometry = toTrianglesDrawMode(mesh.geometry, THREE.TriangleStripDrawMode);
+							mesh.geometry = toTrianglesDrawMode(mesh.geometry, TriangleStripDrawMode);
 
 						} else if (primitive.mode === WEBGL_CONSTANTS.TRIANGLE_FAN) {
 
-							mesh.geometry = toTrianglesDrawMode(mesh.geometry, THREE.TriangleFanDrawMode);
+							mesh.geometry = toTrianglesDrawMode(mesh.geometry, TriangleFanDrawMode);
 
 						}
 
 					} else if (primitive.mode === WEBGL_CONSTANTS.LINES) {
 
-						mesh = new THREE.LineSegments(geometry, material);
+						mesh = new LineSegments(geometry, material);
 
 					} else if (primitive.mode === WEBGL_CONSTANTS.LINE_STRIP) {
 
-						mesh = new THREE.Line(geometry, material);
+						mesh = new Line(geometry, material);
 
 					} else if (primitive.mode === WEBGL_CONSTANTS.LINE_LOOP) {
 
-						mesh = new THREE.LineLoop(geometry, material);
+						mesh = new LineLoop(geometry, material);
 
 					} else if (primitive.mode === WEBGL_CONSTANTS.POINTS) {
 
-						mesh = new THREE.Points(geometry, material);
+						mesh = new Points(geometry, material);
 
 					} else {
 
@@ -3098,7 +3158,7 @@ const THREE = require('../../three.js');
 
 				}
 
-				const group = new THREE.Group();
+				const group = new Group();
 
 				for (let i = 0, il = meshes.length; i < il; i++) {
 
@@ -3133,11 +3193,11 @@ const THREE = require('../../three.js');
 
 			if (cameraDef.type === 'perspective') {
 
-				camera = new THREE.PerspectiveCamera(THREE.MathUtils.radToDeg(params.yfov), params.aspectRatio || 1, params.znear || 1, params.zfar || 2e6);
+				camera = new PerspectiveCamera(MathUtils.radToDeg(params.yfov), params.aspectRatio || 1, params.znear || 1, params.zfar || 2e6);
 
 			} else if (cameraDef.type === 'orthographic') {
 
-				camera = new THREE.OrthographicCamera(- params.xmag, params.xmag, params.ymag, - params.ymag, params.znear, params.zfar);
+				camera = new OrthographicCamera(- params.xmag, params.xmag, params.ymag, - params.ymag, params.znear, params.zfar);
 
 			}
 
@@ -3232,23 +3292,23 @@ const THREE = require('../../three.js');
 					switch (PATH_PROPERTIES[target.path]) {
 
 						case PATH_PROPERTIES.weights:
-							TypedKeyframeTrack = THREE.NumberKeyframeTrack;
+							TypedKeyframeTrack = NumberKeyframeTrack;
 							break;
 
 						case PATH_PROPERTIES.rotation:
-							TypedKeyframeTrack = THREE.QuaternionKeyframeTrack;
+							TypedKeyframeTrack = QuaternionKeyframeTrack;
 							break;
 
 						case PATH_PROPERTIES.position:
 						case PATH_PROPERTIES.scale:
 						default:
-							TypedKeyframeTrack = THREE.VectorKeyframeTrack;
+							TypedKeyframeTrack = VectorKeyframeTrack;
 							break;
 
 					}
 
 					const targetName = node.name ? node.name : node.uuid;
-					const interpolation = sampler.interpolation !== undefined ? INTERPOLATION[sampler.interpolation] : THREE.InterpolateLinear;
+					const interpolation = sampler.interpolation !== undefined ? INTERPOLATION[sampler.interpolation] : InterpolateLinear;
 					const targetNames = [];
 
 					if (PATH_PROPERTIES[target.path] === PATH_PROPERTIES.weights) {
@@ -3298,7 +3358,7 @@ const THREE = require('../../three.js');
 								// A CUBICSPLINE keyframe in glTF has three output values for each input value,
 								// representing inTangent, splineVertex, and outTangent. As a result, track.getValueSize()
 								// must be divided by three to get the interpolant's sampleSize argument.
-								const interpolantType = this instanceof THREE.QuaternionKeyframeTrack ? GLTFCubicSplineQuaternionInterpolant : GLTFCubicSplineInterpolant;
+								const interpolantType = this instanceof QuaternionKeyframeTrack ? GLTFCubicSplineQuaternionInterpolant : GLTFCubicSplineInterpolant;
 								return new interpolantType(this.times, this.values, this.getValueSize() / 3, result);
 
 							}; // Mark as CUBICSPLINE. `track.getInterpolation()` doesn't support custom interpolants.
@@ -3315,7 +3375,7 @@ const THREE = require('../../three.js');
 				}
 
 				const name = animationDef.name ? animationDef.name : 'animation_' + animationIndex;
-				return new THREE.AnimationClip(name, undefined, tracks);
+				return new AnimationClip(name, undefined, tracks);
 
 			});
 
@@ -3412,11 +3472,11 @@ const THREE = require('../../three.js');
 
 				if (nodeDef.isBone === true) {
 
-					node = new THREE.Bone();
+					node = new Bone();
 
 				} else if (objects.length > 1) {
 
-					node = new THREE.Group();
+					node = new Group();
 
 				} else if (objects.length === 1) {
 
@@ -3424,7 +3484,7 @@ const THREE = require('../../three.js');
 
 				} else {
 
-					node = new THREE.Object3D();
+					node = new Object3D();
 
 				}
 
@@ -3450,7 +3510,7 @@ const THREE = require('../../three.js');
 
 				if (nodeDef.matrix !== undefined) {
 
-					const matrix = new THREE.Matrix4();
+					const matrix = new Matrix4();
 					matrix.fromArray(nodeDef.matrix);
 					node.applyMatrix4(matrix);
 
@@ -3500,7 +3560,7 @@ const THREE = require('../../three.js');
 			const parser = this; // THREE.Loader returns THREE.Group, not Scene.
 			// See: https://github.com/mrdoob/three.js/issues/18342#issuecomment-578981172
 
-			const scene = new THREE.Group();
+			const scene = new Group();
 			if (sceneDef.name) scene.name = parser.createUniqueName(sceneDef.name);
 			assignExtrasToUserData(scene, sceneDef);
 			if (sceneDef.extensions) addUnknownExtensionsToUserData(extensions, scene, sceneDef);
@@ -3559,7 +3619,7 @@ const THREE = require('../../three.js');
 						if (jointNode) {
 
 							bones.push(jointNode);
-							const mat = new THREE.Matrix4();
+							const mat = new Matrix4();
 
 							if (skinEntry.inverseBindMatrices !== undefined) {
 
@@ -3577,7 +3637,7 @@ const THREE = require('../../three.js');
 
 					}
 
-					mesh.bind(new THREE.Skeleton(bones, boneInverses), mesh.matrixWorld);
+					mesh.bind(new Skeleton(bones, boneInverses), mesh.matrixWorld);
 
 				});
 				return node;
@@ -3618,7 +3678,7 @@ const THREE = require('../../three.js');
 	function computeBounds(geometry, primitiveDef, parser) {
 
 		const attributes = primitiveDef.attributes;
-		const box = new THREE.Box3();
+		const box = new Box3();
 
 		if (attributes.POSITION !== undefined) {
 
@@ -3628,7 +3688,7 @@ const THREE = require('../../three.js');
 
 			if (min !== undefined && max !== undefined) {
 
-				box.set(new THREE.Vector3(min[0], min[1], min[2]), new THREE.Vector3(max[0], max[1], max[2]));
+				box.set(new Vector3(min[0], min[1], min[2]), new Vector3(max[0], max[1], max[2]));
 
 				if (accessor.normalized) {
 
@@ -3655,8 +3715,8 @@ const THREE = require('../../three.js');
 
 		if (targets !== undefined) {
 
-			const maxDisplacement = new THREE.Vector3();
-			const vector = new THREE.Vector3();
+			const maxDisplacement = new Vector3();
+			const vector = new Vector3();
 
 			for (let i = 0, il = targets.length; i < il; i++) {
 
@@ -3704,7 +3764,7 @@ const THREE = require('../../three.js');
 		}
 
 		geometry.boundingBox = box;
-		const sphere = new THREE.Sphere();
+		const sphere = new Sphere();
 		box.getCenter(sphere.center);
 		sphere.radius = box.min.distanceTo(box.max) / 2;
 		geometry.boundingSphere = sphere;
@@ -3802,7 +3862,7 @@ const THREE = require('../../three.js');
 		const numberOfTriangles = index.count - 2;
 		const newIndices = [];
 
-		if (drawMode === THREE.TriangleFanDrawMode) {
+		if (drawMode === TriangleFanDrawMode) {
 
 			// gl.TRIANGLE_FAN
 			for (let i = 1; i <= numberOfTriangles; i++) {
@@ -3849,8 +3909,4 @@ const THREE = require('../../three.js');
 
 	}
 
-	THREE.GLTFLoader = GLTFLoader;
-
-})();
-
-module.exports = exports = THREE.GLTFLoader;
+export default GLTFLoader;

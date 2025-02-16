@@ -1,22 +1,49 @@
-const THREE = require("../three.js");
-const utils = require("../utils/utils.js");
-const Objects = require('./objects.js');
+import {
+  Box3,
+  Vector3,
+  InstancedBufferGeometry,
+  Float32BufferAttribute,
+  InstancedInterleavedBuffer,
+  InterleavedBufferAttribute,
+  WireframeGeometry,
+  Sphere,
+  UniformsLib,
+  Vector2,
+  ShaderLib,
+  UniformsUtils,
+  ShaderMaterial,
+  Vector4,
+  Matrix4,
+  Line3,
+  Mesh,
+  MathUtils,
+} from "three";
+import { _validate, lnglatsToWorld, normalizeVertices, flattenVectors } from "../utils/utils.js";
+import Object from './objects.js';
+
+import { LineSegmentsGeometry as _LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js';
+import { Line2 as _line2 } from "three/examples/jsm/Addons.js";
+import { LineMaterial as _LineMaterial } from 'three/addons/lines/LineMaterial.js';
+import { LineSegments2 as _LineSegments2 } from "three/examples/jsm/lines/webgpu/LineSegments2.js";
+import { LineGeometry as _LineGeometry } from 'three/addons/lines/LineGeometry.js';
+import { Wireframe as _Wireframe } from "three/examples/jsm/Addons.js";
+import { WireframeGeometry2 as _WireframeGeometry2 } from 'three/addons/lines/WireframeGeometry2.js';
 
 function line(obj){
 
-	obj = utils._validate(obj, Objects.prototype._defaults.line);
+	obj = _validate(obj, Object.prototype._defaults.line);
 
 	// Geometry
-    var straightProject = utils.lnglatsToWorld(obj.geometry);
-	var normalized = utils.normalizeVertices(straightProject);
-    var flattenedArray = utils.flattenVectors(normalized.vertices);
+    var straightProject = lnglatsToWorld(obj.geometry);
+	var normalized = normalizeVertices(straightProject);
+    var flattenedArray = flattenVectors(normalized.vertices);
 	//console.log('line', normalized.vertices)
 
-	var geometry = new THREE.LineGeometry();
+	var geometry = new _LineGeometry();
 	geometry.setPositions( flattenedArray );
 
 	// Material
-	let matLine = new THREE.LineMaterial( {
+	let matLine = new _LineMaterial( {
 		color: obj.color,
 		linewidth: obj.width, // in pixels
 		dashed: false,
@@ -29,1354 +56,1354 @@ function line(obj){
 	matLine.depthWrite = false;
 
 	// Mesh
-	line = new THREE.Line2( geometry, matLine );
+	line = new _Line2( geometry, matLine );
 	line.position.copy(normalized.position)
 	line.computeLineDistances();
 
 	return line
 }
 
-module.exports = exports = line;
+export default line;
 
 /**
  * custom line shader by WestLangley, sourced from https://github.com/mrdoob/three.js/tree/master/examples/js/lines
  *
  */
 
-(function () {
+// (function () {
 
-	const _box = new THREE.Box3();
+// 	const _box = new Box3();
 
-	const _vector = new THREE.Vector3();
+// 	const _vector = new Vector3();
 
-	class LineSegmentsGeometry extends THREE.InstancedBufferGeometry {
+// 	class LineSegmentsGeometry extends InstancedBufferGeometry {
 
-		constructor() {
+// 		constructor() {
 
-			super();
-			this.type = 'LineSegmentsGeometry';
-			const positions = [- 1, 2, 0, 1, 2, 0, - 1, 1, 0, 1, 1, 0, - 1, 0, 0, 1, 0, 0, - 1, - 1, 0, 1, - 1, 0];
-			const uvs = [- 1, 2, 1, 2, - 1, 1, 1, 1, - 1, - 1, 1, - 1, - 1, - 2, 1, - 2];
-			const index = [0, 2, 1, 2, 3, 1, 2, 4, 3, 4, 5, 3, 4, 6, 5, 6, 7, 5];
-			this.setIndex(index);
-			this.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-			this.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+// 			super();
+// 			this.type = 'LineSegmentsGeometry';
+// 			const positions = [- 1, 2, 0, 1, 2, 0, - 1, 1, 0, 1, 1, 0, - 1, 0, 0, 1, 0, 0, - 1, - 1, 0, 1, - 1, 0];
+// 			const uvs = [- 1, 2, 1, 2, - 1, 1, 1, 1, - 1, - 1, 1, - 1, - 1, - 2, 1, - 2];
+// 			const index = [0, 2, 1, 2, 3, 1, 2, 4, 3, 4, 5, 3, 4, 6, 5, 6, 7, 5];
+// 			this.setIndex(index);
+// 			this.setAttribute('position', new Float32BufferAttribute(positions, 3));
+// 			this.setAttribute('uv', new Float32BufferAttribute(uvs, 2));
 
-		}
+// 		}
 
-		applyMatrix4(matrix) {
+// 		applyMatrix4(matrix) {
 
-			const start = this.attributes.instanceStart;
-			const end = this.attributes.instanceEnd;
+// 			const start = this.attributes.instanceStart;
+// 			const end = this.attributes.instanceEnd;
 
-			if (start !== undefined) {
+// 			if (start !== undefined) {
 
-				start.applyMatrix4(matrix);
-				end.applyMatrix4(matrix);
-				start.needsUpdate = true;
+// 				start.applyMatrix4(matrix);
+// 				end.applyMatrix4(matrix);
+// 				start.needsUpdate = true;
 
-			}
+// 			}
 
-			if (this.boundingBox !== null) {
+// 			if (this.boundingBox !== null) {
 
-				this.computeBoundingBox();
+// 				this.computeBoundingBox();
 
-			}
+// 			}
 
-			if (this.boundingSphere !== null) {
+// 			if (this.boundingSphere !== null) {
 
-				this.computeBoundingSphere();
+// 				this.computeBoundingSphere();
 
-			}
+// 			}
 
-			return this;
+// 			return this;
 
-		}
+// 		}
 
-		setPositions(array) {
+// 		setPositions(array) {
 
-			let lineSegments;
+// 			let lineSegments;
 
-			if (array instanceof Float32Array) {
+// 			if (array instanceof Float32Array) {
 
-				lineSegments = array;
+// 				lineSegments = array;
 
-			} else if (Array.isArray(array)) {
+// 			} else if (Array.isArray(array)) {
 
-				lineSegments = new Float32Array(array);
+// 				lineSegments = new Float32Array(array);
 
-			}
+// 			}
 
-			const instanceBuffer = new THREE.InstancedInterleavedBuffer(lineSegments, 6, 1); // xyz, xyz
+// 			const instanceBuffer = new InstancedInterleavedBuffer(lineSegments, 6, 1); // xyz, xyz
 
-			this.setAttribute('instanceStart', new THREE.InterleavedBufferAttribute(instanceBuffer, 3, 0)); // xyz
+// 			this.setAttribute('instanceStart', new InterleavedBufferAttribute(instanceBuffer, 3, 0)); // xyz
 
-			this.setAttribute('instanceEnd', new THREE.InterleavedBufferAttribute(instanceBuffer, 3, 3)); // xyz
-			//
+// 			this.setAttribute('instanceEnd', new InterleavedBufferAttribute(instanceBuffer, 3, 3)); // xyz
+// 			//
 
-			this.computeBoundingBox();
-			this.computeBoundingSphere();
-			return this;
+// 			this.computeBoundingBox();
+// 			this.computeBoundingSphere();
+// 			return this;
 
-		}
+// 		}
 
-		setColors(array) {
+// 		setColors(array) {
 
-			let colors;
+// 			let colors;
 
-			if (array instanceof Float32Array) {
+// 			if (array instanceof Float32Array) {
 
-				colors = array;
+// 				colors = array;
 
-			} else if (Array.isArray(array)) {
+// 			} else if (Array.isArray(array)) {
 
-				colors = new Float32Array(array);
+// 				colors = new Float32Array(array);
 
-			}
+// 			}
 
-			const instanceColorBuffer = new THREE.InstancedInterleavedBuffer(colors, 6, 1); // rgb, rgb
+// 			const instanceColorBuffer = new InstancedInterleavedBuffer(colors, 6, 1); // rgb, rgb
 
-			this.setAttribute('instanceColorStart', new THREE.InterleavedBufferAttribute(instanceColorBuffer, 3, 0)); // rgb
+// 			this.setAttribute('instanceColorStart', new InterleavedBufferAttribute(instanceColorBuffer, 3, 0)); // rgb
 
-			this.setAttribute('instanceColorEnd', new THREE.InterleavedBufferAttribute(instanceColorBuffer, 3, 3)); // rgb
+// 			this.setAttribute('instanceColorEnd', new InterleavedBufferAttribute(instanceColorBuffer, 3, 3)); // rgb
 
-			return this;
+// 			return this;
 
-		}
+// 		}
 
-		fromWireframeGeometry(geometry) {
+// 		fromWireframeGeometry(geometry) {
 
-			this.setPositions(geometry.attributes.position.array);
-			return this;
+// 			this.setPositions(geometry.attributes.position.array);
+// 			return this;
 
-		}
+// 		}
 
-		fromEdgesGeometry(geometry) {
+// 		fromEdgesGeometry(geometry) {
 
-			this.setPositions(geometry.attributes.position.array);
-			return this;
+// 			this.setPositions(geometry.attributes.position.array);
+// 			return this;
 
-		}
+// 		}
 
-		fromMesh(mesh) {
+// 		fromMesh(mesh) {
 
-			this.fromWireframeGeometry(new THREE.WireframeGeometry(mesh.geometry)); // set colors, maybe
+// 			this.fromWireframeGeometry(new WireframeGeometry(mesh.geometry)); // set colors, maybe
 
-			return this;
+// 			return this;
 
-		}
+// 		}
 
-		fromLineSegments(lineSegments) {
+// 		fromLineSegments(lineSegments) {
 
-			const geometry = lineSegments.geometry;
+// 			const geometry = lineSegments.geometry;
 
-			if (geometry.isGeometry) {
+// 			if (geometry.isGeometry) {
 
-				console.error('THREE.LineSegmentsGeometry no longer supports Geometry. Use THREE.BufferGeometry instead.');
-				return;
+// 				console.error('THREE.LineSegmentsGeometry no longer supports Geometry. Use THREE.BufferGeometry instead.');
+// 				return;
 
-			} else if (geometry.isBufferGeometry) {
+// 			} else if (geometry.isBufferGeometry) {
 
-				this.setPositions(geometry.attributes.position.array); // assumes non-indexed
+// 				this.setPositions(geometry.attributes.position.array); // assumes non-indexed
 
-			} // set colors, maybe
+// 			} // set colors, maybe
 
 
-			return this;
+// 			return this;
 
-		}
+// 		}
 
-		computeBoundingBox() {
+// 		computeBoundingBox() {
 
-			if (this.boundingBox === null) {
+// 			if (this.boundingBox === null) {
 
-				this.boundingBox = new THREE.Box3();
+// 				this.boundingBox = new Box3();
 
-			}
+// 			}
 
-			const start = this.attributes.instanceStart;
-			const end = this.attributes.instanceEnd;
+// 			const start = this.attributes.instanceStart;
+// 			const end = this.attributes.instanceEnd;
 
-			if (start !== undefined && end !== undefined) {
+// 			if (start !== undefined && end !== undefined) {
 
-				this.boundingBox.setFromBufferAttribute(start);
+// 				this.boundingBox.setFromBufferAttribute(start);
 
-				_box.setFromBufferAttribute(end);
+// 				_box.setFromBufferAttribute(end);
 
-				this.boundingBox.union(_box);
+// 				this.boundingBox.union(_box);
 
-			}
+// 			}
 
-		}
+// 		}
 
-		computeBoundingSphere() {
+// 		computeBoundingSphere() {
 
-			if (this.boundingSphere === null) {
+// 			if (this.boundingSphere === null) {
 
-				this.boundingSphere = new THREE.Sphere();
+// 				this.boundingSphere = new Sphere();
 
-			}
+// 			}
 
-			if (this.boundingBox === null) {
+// 			if (this.boundingBox === null) {
 
-				this.computeBoundingBox();
+// 				this.computeBoundingBox();
 
-			}
+// 			}
 
-			const start = this.attributes.instanceStart;
-			const end = this.attributes.instanceEnd;
+// 			const start = this.attributes.instanceStart;
+// 			const end = this.attributes.instanceEnd;
 
-			if (start !== undefined && end !== undefined) {
+// 			if (start !== undefined && end !== undefined) {
 
-				const center = this.boundingSphere.center;
-				this.boundingBox.getCenter(center);
-				let maxRadiusSq = 0;
+// 				const center = this.boundingSphere.center;
+// 				this.boundingBox.getCenter(center);
+// 				let maxRadiusSq = 0;
 
-				for (let i = 0, il = start.count; i < il; i++) {
+// 				for (let i = 0, il = start.count; i < il; i++) {
 
-					_vector.fromBufferAttribute(start, i);
+// 					_vector.fromBufferAttribute(start, i);
 
-					maxRadiusSq = Math.max(maxRadiusSq, center.distanceToSquared(_vector));
+// 					maxRadiusSq = Math.max(maxRadiusSq, center.distanceToSquared(_vector));
 
-					_vector.fromBufferAttribute(end, i);
+// 					_vector.fromBufferAttribute(end, i);
 
-					maxRadiusSq = Math.max(maxRadiusSq, center.distanceToSquared(_vector));
+// 					maxRadiusSq = Math.max(maxRadiusSq, center.distanceToSquared(_vector));
 
-				}
+// 				}
 
-				this.boundingSphere.radius = Math.sqrt(maxRadiusSq);
+// 				this.boundingSphere.radius = Math.sqrt(maxRadiusSq);
 
-				if (isNaN(this.boundingSphere.radius)) {
+// 				if (isNaN(this.boundingSphere.radius)) {
 
-					console.error('THREE.LineSegmentsGeometry.computeBoundingSphere(): Computed radius is NaN. The instanced position data is likely to have NaN values.', this);
+// 					console.error('THREE.LineSegmentsGeometry.computeBoundingSphere(): Computed radius is NaN. The instanced position data is likely to have NaN values.', this);
 
-				}
+// 				}
 
-			}
+// 			}
 
-		}
+// 		}
 
-		toJSON() { // todo
-		}
+// 		toJSON() { // todo
+// 		}
 
-		applyMatrix(matrix) {
+// 		applyMatrix(matrix) {
 
-			console.warn('THREE.LineSegmentsGeometry: applyMatrix() has been renamed to applyMatrix4().');
-			return this.applyMatrix4(matrix);
+// 			console.warn('THREE.LineSegmentsGeometry: applyMatrix() has been renamed to applyMatrix4().');
+// 			return this.applyMatrix4(matrix);
 
-		}
+// 		}
 
-	}
+// 	}
 
-	LineSegmentsGeometry.prototype.isLineSegmentsGeometry = true;
+// 	LineSegmentsGeometry.prototype.isLineSegmentsGeometry = true;
 
-	THREE.LineSegmentsGeometry = LineSegmentsGeometry;
+// 	_LineSegmentsGeometry = LineSegmentsGeometry;
 
-})();
+// })();
 
-/**
- * @author WestLangley / http://github.com/WestLangley
- *
- */
+// /**
+//  * @author WestLangley / http://github.com/WestLangley
+//  *
+//  */
 
-(function () {
+// (function () {
 
-	class LineGeometry extends THREE.LineSegmentsGeometry {
+// 	class LineGeometry extends _LineSegmentsGeometry {
 
-		constructor() {
+// 		constructor() {
 
-			super();
-			this.type = 'LineGeometry';
+// 			super();
+// 			this.type = 'LineGeometry';
 
-		}
+// 		}
 
-		setPositions(array) {
+// 		setPositions(array) {
 
-			// converts [ x1, y1, z1,  x2, y2, z2, ... ] to pairs format
-			var length = array.length - 3;
-			var points = new Float32Array(2 * length);
+// 			// converts [ x1, y1, z1,  x2, y2, z2, ... ] to pairs format
+// 			var length = array.length - 3;
+// 			var points = new Float32Array(2 * length);
 
-			for (var i = 0; i < length; i += 3) {
+// 			for (var i = 0; i < length; i += 3) {
 
-				points[2 * i] = array[i];
-				points[2 * i + 1] = array[i + 1];
-				points[2 * i + 2] = array[i + 2];
-				points[2 * i + 3] = array[i + 3];
-				points[2 * i + 4] = array[i + 4];
-				points[2 * i + 5] = array[i + 5];
+// 				points[2 * i] = array[i];
+// 				points[2 * i + 1] = array[i + 1];
+// 				points[2 * i + 2] = array[i + 2];
+// 				points[2 * i + 3] = array[i + 3];
+// 				points[2 * i + 4] = array[i + 4];
+// 				points[2 * i + 5] = array[i + 5];
 
-			}
+// 			}
 
-			super.setPositions(points);
-			return this;
+// 			super.setPositions(points);
+// 			return this;
 
-		}
+// 		}
 
-		setColors(array) {
+// 		setColors(array) {
 
-			// converts [ r1, g1, b1,  r2, g2, b2, ... ] to pairs format
-			var length = array.length - 3;
-			var colors = new Float32Array(2 * length);
+// 			// converts [ r1, g1, b1,  r2, g2, b2, ... ] to pairs format
+// 			var length = array.length - 3;
+// 			var colors = new Float32Array(2 * length);
 
-			for (var i = 0; i < length; i += 3) {
+// 			for (var i = 0; i < length; i += 3) {
 
-				colors[2 * i] = array[i];
-				colors[2 * i + 1] = array[i + 1];
-				colors[2 * i + 2] = array[i + 2];
-				colors[2 * i + 3] = array[i + 3];
-				colors[2 * i + 4] = array[i + 4];
-				colors[2 * i + 5] = array[i + 5];
+// 				colors[2 * i] = array[i];
+// 				colors[2 * i + 1] = array[i + 1];
+// 				colors[2 * i + 2] = array[i + 2];
+// 				colors[2 * i + 3] = array[i + 3];
+// 				colors[2 * i + 4] = array[i + 4];
+// 				colors[2 * i + 5] = array[i + 5];
 
-			}
+// 			}
 
-			super.setColors(colors);
-			return this;
+// 			super.setColors(colors);
+// 			return this;
 
-		}
+// 		}
 
-		fromLine(line) {
+// 		fromLine(line) {
 
-			var geometry = line.geometry;
+// 			var geometry = line.geometry;
 
-			if (geometry.isGeometry) {
+// 			if (geometry.isGeometry) {
 
-				console.error('THREE.LineGeometry no longer supports Geometry. Use THREE.BufferGeometry instead.');
-				return;
+// 				console.error('THREE.LineGeometry no longer supports Geometry. Use THREE.BufferGeometry instead.');
+// 				return;
 
-			} else if (geometry.isBufferGeometry) {
+// 			} else if (geometry.isBufferGeometry) {
 
-				this.setPositions(geometry.attributes.position.array); // assumes non-indexed
+// 				this.setPositions(geometry.attributes.position.array); // assumes non-indexed
 
-			} // set colors, maybe
+// 			} // set colors, maybe
 
 
-			return this;
+// 			return this;
 
-		}
+// 		}
 
-	}
+// 	}
 
-	LineGeometry.prototype.isLineGeometry = true;
+// 	LineGeometry.prototype.isLineGeometry = true;
 
-	THREE.LineGeometry = LineGeometry;
+// 	_LineGeometry = LineGeometry;
 
-})();
+// })();
 
-/**
- * @author WestLangley / http://github.com/WestLangley
- *
- */
+// /**
+//  * @author WestLangley / http://github.com/WestLangley
+//  *
+//  */
 
-(function () {
+// (function () {
 
-	class WireframeGeometry2 extends THREE.LineSegmentsGeometry {
+// 	class WireframeGeometry2 extends _LineSegmentsGeometry {
 
-		constructor(geometry) {
+// 		constructor(geometry) {
 
-			super();
-			this.type = 'WireframeGeometry2';
-			this.fromWireframeGeometry(new THREE.WireframeGeometry(geometry)); // set colors, maybe
+// 			super();
+// 			this.type = 'WireframeGeometry2';
+// 			this.fromWireframeGeometry(new WireframeGeometry(geometry)); // set colors, maybe
 
-		}
+// 		}
 
-	}
+// 	}
 
-	WireframeGeometry2.prototype.isWireframeGeometry2 = true;
+// 	WireframeGeometry2.prototype.isWireframeGeometry2 = true;
 
-	THREE.WireframeGeometry2 = WireframeGeometry2;
+// 	_WireframeGeometry2 = WireframeGeometry2;
 
-})();
+// })();
 
-/**
- * @author WestLangley / http://github.com/WestLangley
- *
- * parameters = {
- *  color: <hex>,
- *  linewidth: <float>,
- *  dashed: <boolean>,
- *  dashScale: <float>,
- *  dashSize: <float>,
- *  gapSize: <float>,
- *  resolution: <Vector2>, // to be set by renderer
- * }
- */
+// /**
+//  * @author WestLangley / http://github.com/WestLangley
+//  *
+//  * parameters = {
+//  *  color: <hex>,
+//  *  linewidth: <float>,
+//  *  dashed: <boolean>,
+//  *  dashScale: <float>,
+//  *  dashSize: <float>,
+//  *  gapSize: <float>,
+//  *  resolution: <Vector2>, // to be set by renderer
+//  * }
+//  */
 
-(function () {
+// (function () {
 
-	/**
- * parameters = {
- *  color: <hex>,
- *  linewidth: <float>,
- *  dashed: <boolean>,
- *  dashScale: <float>,
- *  dashSize: <float>,
- *  gapSize: <float>,
- *  resolution: <Vector2>, // to be set by renderer
- * }
- */
-	THREE.UniformsLib.line = {
-		worldUnits: {
-			value: 1
-		},
-		linewidth: {
-			value: 1
-		},
-		resolution: {
-			value: new THREE.Vector2(1, 1)
-		},
-		dashScale: {
-			value: 1
-		},
-		dashSize: {
-			value: 1
-		},
-		gapSize: {
-			value: 1
-		} // todo FIX - maybe change to totalSize
+// 	/**
+//  * parameters = {
+//  *  color: <hex>,
+//  *  linewidth: <float>,
+//  *  dashed: <boolean>,
+//  *  dashScale: <float>,
+//  *  dashSize: <float>,
+//  *  gapSize: <float>,
+//  *  resolution: <Vector2>, // to be set by renderer
+//  * }
+//  */
+// 	UniformsLib.line = {
+// 		worldUnits: {
+// 			value: 1
+// 		},
+// 		linewidth: {
+// 			value: 1
+// 		},
+// 		resolution: {
+// 			value: new Vector2(1, 1)
+// 		},
+// 		dashScale: {
+// 			value: 1
+// 		},
+// 		dashSize: {
+// 			value: 1
+// 		},
+// 		gapSize: {
+// 			value: 1
+// 		} // todo FIX - maybe change to totalSize
 
-	};
-	THREE.ShaderLib['line'] = {
-		uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.common, THREE.UniformsLib.fog, THREE.UniformsLib.line]),
-		vertexShader:
-			/* glsl */
-			`
-		#include <common>
-		#include <color_pars_vertex>
-		#include <fog_pars_vertex>
-		#include <logdepthbuf_pars_vertex>
-		#include <clipping_planes_pars_vertex>
+// 	};
+// 	ShaderLib['line'] = {
+// 		uniforms: UniformsUtils.merge([UniformsLib.common, UniformsLib.fog, UniformsLib.line]),
+// 		vertexShader:
+// 			/* glsl */
+// 			`
+// 		#include <common>
+// 		#include <color_pars_vertex>
+// 		#include <fog_pars_vertex>
+// 		#include <logdepthbuf_pars_vertex>
+// 		#include <clipping_planes_pars_vertex>
 
-		uniform float linewidth;
-		uniform vec2 resolution;
+// 		uniform float linewidth;
+// 		uniform vec2 resolution;
 
-		attribute vec3 instanceStart;
-		attribute vec3 instanceEnd;
+// 		attribute vec3 instanceStart;
+// 		attribute vec3 instanceEnd;
 
-		attribute vec3 instanceColorStart;
-		attribute vec3 instanceColorEnd;
+// 		attribute vec3 instanceColorStart;
+// 		attribute vec3 instanceColorEnd;
 
-		varying vec2 vUv;
-		varying vec4 worldPos;
-		varying vec3 worldStart;
-		varying vec3 worldEnd;
+// 		varying vec2 vUv;
+// 		varying vec4 worldPos;
+// 		varying vec3 worldStart;
+// 		varying vec3 worldEnd;
 
-		#ifdef USE_DASH
+// 		#ifdef USE_DASH
 
-			uniform float dashScale;
-			attribute float instanceDistanceStart;
-			attribute float instanceDistanceEnd;
-			varying float vLineDistance;
+// 			uniform float dashScale;
+// 			attribute float instanceDistanceStart;
+// 			attribute float instanceDistanceEnd;
+// 			varying float vLineDistance;
 
-		#endif
+// 		#endif
 
-		void trimSegment( const in vec4 start, inout vec4 end ) {
+// 		void trimSegment( const in vec4 start, inout vec4 end ) {
 
-			// trim end segment so it terminates between the camera plane and the near plane
+// 			// trim end segment so it terminates between the camera plane and the near plane
 
-			// conservative estimate of the near plane
-			float a = projectionMatrix[ 2 ][ 2 ]; // 3nd entry in 3th column
-			float b = projectionMatrix[ 3 ][ 2 ]; // 3nd entry in 4th column
-			float nearEstimate = - 0.5 * b / a;
+// 			// conservative estimate of the near plane
+// 			float a = projectionMatrix[ 2 ][ 2 ]; // 3nd entry in 3th column
+// 			float b = projectionMatrix[ 3 ][ 2 ]; // 3nd entry in 4th column
+// 			float nearEstimate = - 0.5 * b / a;
 
-			float alpha = ( nearEstimate - start.z ) / ( end.z - start.z );
+// 			float alpha = ( nearEstimate - start.z ) / ( end.z - start.z );
 
-			end.xyz = mix( start.xyz, end.xyz, alpha );
+// 			end.xyz = mix( start.xyz, end.xyz, alpha );
 
-		}
+// 		}
 
-		void main() {
+// 		void main() {
 
-			#ifdef USE_COLOR
+// 			#ifdef USE_COLOR
 
-				vColor.xyz = ( position.y < 0.5 ) ? instanceColorStart : instanceColorEnd;
+// 				vColor.xyz = ( position.y < 0.5 ) ? instanceColorStart : instanceColorEnd;
 
-			#endif
+// 			#endif
 
-			#ifdef USE_DASH
+// 			#ifdef USE_DASH
 
-				vLineDistance = ( position.y < 0.5 ) ? dashScale * instanceDistanceStart : dashScale * instanceDistanceEnd;
+// 				vLineDistance = ( position.y < 0.5 ) ? dashScale * instanceDistanceStart : dashScale * instanceDistanceEnd;
 
-			#endif
+// 			#endif
 
-			float aspect = resolution.x / resolution.y;
+// 			float aspect = resolution.x / resolution.y;
 
-			vUv = uv;
+// 			vUv = uv;
 
-			// camera space
-			vec4 start = modelViewMatrix * vec4( instanceStart, 1.0 );
-			vec4 end = modelViewMatrix * vec4( instanceEnd, 1.0 );
+// 			// camera space
+// 			vec4 start = modelViewMatrix * vec4( instanceStart, 1.0 );
+// 			vec4 end = modelViewMatrix * vec4( instanceEnd, 1.0 );
 
-			worldStart = start.xyz;
-			worldEnd = end.xyz;
+// 			worldStart = start.xyz;
+// 			worldEnd = end.xyz;
 
-			// special case for perspective projection, and segments that terminate either in, or behind, the camera plane
-			// clearly the gpu firmware has a way of addressing this issue when projecting into ndc space
-			// but we need to perform ndc-space calculations in the shader, so we must address this issue directly
-			// perhaps there is a more elegant solution -- WestLangley
+// 			// special case for perspective projection, and segments that terminate either in, or behind, the camera plane
+// 			// clearly the gpu firmware has a way of addressing this issue when projecting into ndc space
+// 			// but we need to perform ndc-space calculations in the shader, so we must address this issue directly
+// 			// perhaps there is a more elegant solution -- WestLangley
 
-			bool perspective = ( projectionMatrix[ 2 ][ 3 ] == - 1.0 ); // 4th entry in the 3rd column
+// 			bool perspective = ( projectionMatrix[ 2 ][ 3 ] == - 1.0 ); // 4th entry in the 3rd column
 
-			if ( perspective ) {
+// 			if ( perspective ) {
 
-				if ( start.z < 0.0 && end.z >= 0.0 ) {
+// 				if ( start.z < 0.0 && end.z >= 0.0 ) {
 
-					trimSegment( start, end );
+// 					trimSegment( start, end );
 
-				} else if ( end.z < 0.0 && start.z >= 0.0 ) {
+// 				} else if ( end.z < 0.0 && start.z >= 0.0 ) {
 
-					trimSegment( end, start );
+// 					trimSegment( end, start );
 
-				}
+// 				}
 
-			}
+// 			}
 
-			// clip space
-			vec4 clipStart = projectionMatrix * start;
-			vec4 clipEnd = projectionMatrix * end;
+// 			// clip space
+// 			vec4 clipStart = projectionMatrix * start;
+// 			vec4 clipEnd = projectionMatrix * end;
 
-			// ndc space
-			vec3 ndcStart = clipStart.xyz / clipStart.w;
-			vec3 ndcEnd = clipEnd.xyz / clipEnd.w;
+// 			// ndc space
+// 			vec3 ndcStart = clipStart.xyz / clipStart.w;
+// 			vec3 ndcEnd = clipEnd.xyz / clipEnd.w;
 
-			// direction
-			vec2 dir = ndcEnd.xy - ndcStart.xy;
+// 			// direction
+// 			vec2 dir = ndcEnd.xy - ndcStart.xy;
 
-			// account for clip-space aspect ratio
-			dir.x *= aspect;
-			dir = normalize( dir );
+// 			// account for clip-space aspect ratio
+// 			dir.x *= aspect;
+// 			dir = normalize( dir );
 
-			#ifdef WORLD_UNITS
+// 			#ifdef WORLD_UNITS
 
-				// get the offset direction as perpendicular to the view vector
-				vec3 worldDir = normalize( end.xyz - start.xyz );
-				vec3 offset;
-				if ( position.y < 0.5 ) {
+// 				// get the offset direction as perpendicular to the view vector
+// 				vec3 worldDir = normalize( end.xyz - start.xyz );
+// 				vec3 offset;
+// 				if ( position.y < 0.5 ) {
 
-					offset = normalize( cross( start.xyz, worldDir ) );
+// 					offset = normalize( cross( start.xyz, worldDir ) );
 
-				} else {
+// 				} else {
 
-					offset = normalize( cross( end.xyz, worldDir ) );
+// 					offset = normalize( cross( end.xyz, worldDir ) );
 
-				}
+// 				}
 
-				// sign flip
-				if ( position.x < 0.0 ) offset *= - 1.0;
+// 				// sign flip
+// 				if ( position.x < 0.0 ) offset *= - 1.0;
 
-				float forwardOffset = dot( worldDir, vec3( 0.0, 0.0, 1.0 ) );
+// 				float forwardOffset = dot( worldDir, vec3( 0.0, 0.0, 1.0 ) );
 
-				// don't extend the line if we're rendering dashes because we
-				// won't be rendering the endcaps
-				#ifndef USE_DASH
+// 				// don't extend the line if we're rendering dashes because we
+// 				// won't be rendering the endcaps
+// 				#ifndef USE_DASH
 
-					// extend the line bounds to encompass  endcaps
-					start.xyz += - worldDir * linewidth * 0.5;
-					end.xyz += worldDir * linewidth * 0.5;
+// 					// extend the line bounds to encompass  endcaps
+// 					start.xyz += - worldDir * linewidth * 0.5;
+// 					end.xyz += worldDir * linewidth * 0.5;
 
-					// shift the position of the quad so it hugs the forward edge of the line
-					offset.xy -= dir * forwardOffset;
-					offset.z += 0.5;
+// 					// shift the position of the quad so it hugs the forward edge of the line
+// 					offset.xy -= dir * forwardOffset;
+// 					offset.z += 0.5;
 
-				#endif
+// 				#endif
 
-				// endcaps
-				if ( position.y > 1.0 || position.y < 0.0 ) {
+// 				// endcaps
+// 				if ( position.y > 1.0 || position.y < 0.0 ) {
 
-					offset.xy += dir * 2.0 * forwardOffset;
+// 					offset.xy += dir * 2.0 * forwardOffset;
 
-				}
+// 				}
 
-				// adjust for linewidth
-				offset *= linewidth * 0.5;
+// 				// adjust for linewidth
+// 				offset *= linewidth * 0.5;
 
-				// set the world position
-				worldPos = ( position.y < 0.5 ) ? start : end;
-				worldPos.xyz += offset;
+// 				// set the world position
+// 				worldPos = ( position.y < 0.5 ) ? start : end;
+// 				worldPos.xyz += offset;
 
-				// project the worldpos
-				vec4 clip = projectionMatrix * worldPos;
+// 				// project the worldpos
+// 				vec4 clip = projectionMatrix * worldPos;
 
-				// shift the depth of the projected points so the line
-				// segements overlap neatly
-				vec3 clipPose = ( position.y < 0.5 ) ? ndcStart : ndcEnd;
-				clip.z = clipPose.z * clip.w;
+// 				// shift the depth of the projected points so the line
+// 				// segements overlap neatly
+// 				vec3 clipPose = ( position.y < 0.5 ) ? ndcStart : ndcEnd;
+// 				clip.z = clipPose.z * clip.w;
 
-			#else
+// 			#else
 
-				vec2 offset = vec2( dir.y, - dir.x );
-				// undo aspect ratio adjustment
-				dir.x /= aspect;
-				offset.x /= aspect;
+// 				vec2 offset = vec2( dir.y, - dir.x );
+// 				// undo aspect ratio adjustment
+// 				dir.x /= aspect;
+// 				offset.x /= aspect;
 
-				// sign flip
-				if ( position.x < 0.0 ) offset *= - 1.0;
+// 				// sign flip
+// 				if ( position.x < 0.0 ) offset *= - 1.0;
 
-				// endcaps
-				if ( position.y < 0.0 ) {
+// 				// endcaps
+// 				if ( position.y < 0.0 ) {
 
-					offset += - dir;
+// 					offset += - dir;
 
-				} else if ( position.y > 1.0 ) {
+// 				} else if ( position.y > 1.0 ) {
 
-					offset += dir;
+// 					offset += dir;
 
-				}
+// 				}
 
-				// adjust for linewidth
-				offset *= linewidth;
+// 				// adjust for linewidth
+// 				offset *= linewidth;
 
-				// adjust for clip-space to screen-space conversion // maybe resolution should be based on viewport ...
-				offset /= resolution.y;
+// 				// adjust for clip-space to screen-space conversion // maybe resolution should be based on viewport ...
+// 				offset /= resolution.y;
 
-				// select end
-				vec4 clip = ( position.y < 0.5 ) ? clipStart : clipEnd;
+// 				// select end
+// 				vec4 clip = ( position.y < 0.5 ) ? clipStart : clipEnd;
 
-				// back to clip space
-				offset *= clip.w;
+// 				// back to clip space
+// 				offset *= clip.w;
 
-				clip.xy += offset;
+// 				clip.xy += offset;
 
-			#endif
+// 			#endif
 
-			gl_Position = clip;
+// 			gl_Position = clip;
 
-			vec4 mvPosition = ( position.y < 0.5 ) ? start : end; // this is an approximation
+// 			vec4 mvPosition = ( position.y < 0.5 ) ? start : end; // this is an approximation
 
-			#include <logdepthbuf_vertex>
-			#include <clipping_planes_vertex>
-			#include <fog_vertex>
+// 			#include <logdepthbuf_vertex>
+// 			#include <clipping_planes_vertex>
+// 			#include <fog_vertex>
 
-		}
-		`,
-		fragmentShader:
-			/* glsl */
-			`
-		uniform vec3 diffuse;
-		uniform float opacity;
-		uniform float linewidth;
+// 		}
+// 		`,
+// 		fragmentShader:
+// 			/* glsl */
+// 			`
+// 		uniform vec3 diffuse;
+// 		uniform float opacity;
+// 		uniform float linewidth;
 
-		#ifdef USE_DASH
+// 		#ifdef USE_DASH
 
-			uniform float dashSize;
-			uniform float gapSize;
+// 			uniform float dashSize;
+// 			uniform float gapSize;
 
-		#endif
+// 		#endif
 
-		varying float vLineDistance;
-		varying vec4 worldPos;
-		varying vec3 worldStart;
-		varying vec3 worldEnd;
+// 		varying float vLineDistance;
+// 		varying vec4 worldPos;
+// 		varying vec3 worldStart;
+// 		varying vec3 worldEnd;
 
-		#include <common>
-		#include <color_pars_fragment>
-		#include <fog_pars_fragment>
-		#include <logdepthbuf_pars_fragment>
-		#include <clipping_planes_pars_fragment>
+// 		#include <common>
+// 		#include <color_pars_fragment>
+// 		#include <fog_pars_fragment>
+// 		#include <logdepthbuf_pars_fragment>
+// 		#include <clipping_planes_pars_fragment>
 
-		varying vec2 vUv;
+// 		varying vec2 vUv;
 
-		vec2 closestLineToLine(vec3 p1, vec3 p2, vec3 p3, vec3 p4) {
+// 		vec2 closestLineToLine(vec3 p1, vec3 p2, vec3 p3, vec3 p4) {
 
-			float mua;
-			float mub;
+// 			float mua;
+// 			float mub;
 
-			vec3 p13 = p1 - p3;
-			vec3 p43 = p4 - p3;
+// 			vec3 p13 = p1 - p3;
+// 			vec3 p43 = p4 - p3;
 
-			vec3 p21 = p2 - p1;
+// 			vec3 p21 = p2 - p1;
 
-			float d1343 = dot( p13, p43 );
-			float d4321 = dot( p43, p21 );
-			float d1321 = dot( p13, p21 );
-			float d4343 = dot( p43, p43 );
-			float d2121 = dot( p21, p21 );
+// 			float d1343 = dot( p13, p43 );
+// 			float d4321 = dot( p43, p21 );
+// 			float d1321 = dot( p13, p21 );
+// 			float d4343 = dot( p43, p43 );
+// 			float d2121 = dot( p21, p21 );
 
-			float denom = d2121 * d4343 - d4321 * d4321;
+// 			float denom = d2121 * d4343 - d4321 * d4321;
 
-			float numer = d1343 * d4321 - d1321 * d4343;
+// 			float numer = d1343 * d4321 - d1321 * d4343;
 
-			mua = numer / denom;
-			mua = clamp( mua, 0.0, 1.0 );
-			mub = ( d1343 + d4321 * ( mua ) ) / d4343;
-			mub = clamp( mub, 0.0, 1.0 );
+// 			mua = numer / denom;
+// 			mua = clamp( mua, 0.0, 1.0 );
+// 			mub = ( d1343 + d4321 * ( mua ) ) / d4343;
+// 			mub = clamp( mub, 0.0, 1.0 );
 
-			return vec2( mua, mub );
+// 			return vec2( mua, mub );
 
-		}
+// 		}
 
-		void main() {
+// 		void main() {
 
-			#include <clipping_planes_fragment>
+// 			#include <clipping_planes_fragment>
 
-			#ifdef USE_DASH
+// 			#ifdef USE_DASH
 
-				if ( vUv.y < - 1.0 || vUv.y > 1.0 ) discard; // discard endcaps
+// 				if ( vUv.y < - 1.0 || vUv.y > 1.0 ) discard; // discard endcaps
 
-				if ( mod( vLineDistance, dashSize + gapSize ) > dashSize ) discard; // todo - FIX
+// 				if ( mod( vLineDistance, dashSize + gapSize ) > dashSize ) discard; // todo - FIX
 
-			#endif
+// 			#endif
 
-			float alpha = opacity;
+// 			float alpha = opacity;
 
-			#ifdef WORLD_UNITS
+// 			#ifdef WORLD_UNITS
 
-				// Find the closest points on the view ray and the line segment
-				vec3 rayEnd = normalize( worldPos.xyz ) * 1e5;
-				vec3 lineDir = worldEnd - worldStart;
-				vec2 params = closestLineToLine( worldStart, worldEnd, vec3( 0.0, 0.0, 0.0 ), rayEnd );
+// 				// Find the closest points on the view ray and the line segment
+// 				vec3 rayEnd = normalize( worldPos.xyz ) * 1e5;
+// 				vec3 lineDir = worldEnd - worldStart;
+// 				vec2 params = closestLineToLine( worldStart, worldEnd, vec3( 0.0, 0.0, 0.0 ), rayEnd );
 
-				vec3 p1 = worldStart + lineDir * params.x;
-				vec3 p2 = rayEnd * params.y;
-				vec3 delta = p1 - p2;
-				float len = length( delta );
-				float norm = len / linewidth;
+// 				vec3 p1 = worldStart + lineDir * params.x;
+// 				vec3 p2 = rayEnd * params.y;
+// 				vec3 delta = p1 - p2;
+// 				float len = length( delta );
+// 				float norm = len / linewidth;
 
-				#ifndef USE_DASH
+// 				#ifndef USE_DASH
 
-					#ifdef ALPHA_TO_COVERAGE
+// 					#ifdef ALPHA_TO_COVERAGE
 
-						float dnorm = fwidth( norm );
-						alpha = 1.0 - smoothstep( 0.5 - dnorm, 0.5 + dnorm, norm );
+// 						float dnorm = fwidth( norm );
+// 						alpha = 1.0 - smoothstep( 0.5 - dnorm, 0.5 + dnorm, norm );
 
-					#else
+// 					#else
 
-						if ( norm > 0.5 ) {
+// 						if ( norm > 0.5 ) {
 
-							discard;
+// 							discard;
 
-						}
+// 						}
 
-					#endif
+// 					#endif
 
-				#endif
+// 				#endif
 
-			#else
+// 			#else
 
-				#ifdef ALPHA_TO_COVERAGE
+// 				#ifdef ALPHA_TO_COVERAGE
 
-					// artifacts appear on some hardware if a derivative is taken within a conditional
-					float a = vUv.x;
-					float b = ( vUv.y > 0.0 ) ? vUv.y - 1.0 : vUv.y + 1.0;
-					float len2 = a * a + b * b;
-					float dlen = fwidth( len2 );
+// 					// artifacts appear on some hardware if a derivative is taken within a conditional
+// 					float a = vUv.x;
+// 					float b = ( vUv.y > 0.0 ) ? vUv.y - 1.0 : vUv.y + 1.0;
+// 					float len2 = a * a + b * b;
+// 					float dlen = fwidth( len2 );
 
-					if ( abs( vUv.y ) > 1.0 ) {
+// 					if ( abs( vUv.y ) > 1.0 ) {
 
-						alpha = 1.0 - smoothstep( 1.0 - dlen, 1.0 + dlen, len2 );
+// 						alpha = 1.0 - smoothstep( 1.0 - dlen, 1.0 + dlen, len2 );
 
-					}
+// 					}
 
-				#else
+// 				#else
 
-					if ( abs( vUv.y ) > 1.0 ) {
+// 					if ( abs( vUv.y ) > 1.0 ) {
 
-						float a = vUv.x;
-						float b = ( vUv.y > 0.0 ) ? vUv.y - 1.0 : vUv.y + 1.0;
-						float len2 = a * a + b * b;
+// 						float a = vUv.x;
+// 						float b = ( vUv.y > 0.0 ) ? vUv.y - 1.0 : vUv.y + 1.0;
+// 						float len2 = a * a + b * b;
 
-						if ( len2 > 1.0 ) discard;
+// 						if ( len2 > 1.0 ) discard;
 
-					}
+// 					}
 
-				#endif
+// 				#endif
 
-			#endif
+// 			#endif
 
-			vec4 diffuseColor = vec4( diffuse, alpha );
+// 			vec4 diffuseColor = vec4( diffuse, alpha );
 
-			#include <logdepthbuf_fragment>
-			#include <color_fragment>
+// 			#include <logdepthbuf_fragment>
+// 			#include <color_fragment>
 
-			gl_FragColor = vec4( diffuseColor.rgb, alpha );
+// 			gl_FragColor = vec4( diffuseColor.rgb, alpha );
 
-			#include <tonemapping_fragment>
-			#include <encodings_fragment>
-			#include <fog_fragment>
-			#include <premultiplied_alpha_fragment>
+// 			#include <tonemapping_fragment>
+// 			#include <encodings_fragment>
+// 			#include <fog_fragment>
+// 			#include <premultiplied_alpha_fragment>
 
-		}
-		`
-	};
+// 		}
+// 		`
+// 	};
 
-	class LineMaterial extends THREE.ShaderMaterial {
+// 	class LineMaterial extends ShaderMaterial {
 
-		constructor(parameters) {
+// 		constructor(parameters) {
 
-			super({
-				type: 'LineMaterial',
-				uniforms: THREE.UniformsUtils.clone(THREE.ShaderLib['line'].uniforms),
-				vertexShader: THREE.ShaderLib['line'].vertexShader,
-				fragmentShader: THREE.ShaderLib['line'].fragmentShader,
-				clipping: true // required for clipping support
+// 			super({
+// 				type: 'LineMaterial',
+// 				uniforms: UniformsUtils.clone(ShaderLib['line'].uniforms),
+// 				vertexShader: ShaderLib['line'].vertexShader,
+// 				fragmentShader: ShaderLib['line'].fragmentShader,
+// 				clipping: true // required for clipping support
 
-			});
-			Object.defineProperties(this, {
-				color: {
-					enumerable: true,
-					get: function () {
+// 			});
+// 			Object.defineProperties(this, {
+// 				color: {
+// 					enumerable: true,
+// 					get: function () {
 
-						return this.uniforms.diffuse.value;
+// 						return this.uniforms.diffuse.value;
 
-					},
-					set: function (value) {
+// 					},
+// 					set: function (value) {
 
-						this.uniforms.diffuse.value = value;
+// 						this.uniforms.diffuse.value = value;
 
-					}
-				},
-				worldUnits: {
-					enumerable: true,
-					get: function () {
+// 					}
+// 				},
+// 				worldUnits: {
+// 					enumerable: true,
+// 					get: function () {
 
-						return 'WORLD_UNITS' in this.defines;
+// 						return 'WORLD_UNITS' in this.defines;
 
-					},
-					set: function (value) {
+// 					},
+// 					set: function (value) {
 
-						if (value === true) {
+// 						if (value === true) {
 
-							this.defines.WORLD_UNITS = '';
+// 							this.defines.WORLD_UNITS = '';
 
-						} else {
+// 						} else {
 
-							delete this.defines.WORLD_UNITS;
+// 							delete this.defines.WORLD_UNITS;
 
-						}
+// 						}
 
-					}
-				},
-				linewidth: {
-					enumerable: true,
-					get: function () {
+// 					}
+// 				},
+// 				linewidth: {
+// 					enumerable: true,
+// 					get: function () {
 
-						return this.uniforms.linewidth.value;
+// 						return this.uniforms.linewidth.value;
 
-					},
-					set: function (value) {
+// 					},
+// 					set: function (value) {
 
-						this.uniforms.linewidth.value = value;
+// 						this.uniforms.linewidth.value = value;
 
-					}
-				},
-				dashed: {
-					enumerable: true,
-					get: function () {
+// 					}
+// 				},
+// 				dashed: {
+// 					enumerable: true,
+// 					get: function () {
 
-						return Boolean('USE_DASH' in this.defines);
+// 						return Boolean('USE_DASH' in this.defines);
 
-					},
+// 					},
 
-					set(value) {
+// 					set(value) {
 
-						if (Boolean(value) !== Boolean('USE_DASH' in this.defines)) {
+// 						if (Boolean(value) !== Boolean('USE_DASH' in this.defines)) {
 
-							this.needsUpdate = true;
+// 							this.needsUpdate = true;
 
-						}
+// 						}
 
-						if (value === true) {
+// 						if (value === true) {
 
-							this.defines.USE_DASH = '';
+// 							this.defines.USE_DASH = '';
 
-						} else {
+// 						} else {
 
-							delete this.defines.USE_DASH;
+// 							delete this.defines.USE_DASH;
 
-						}
+// 						}
 
-					}
+// 					}
 
-				},
-				dashScale: {
-					enumerable: true,
-					get: function () {
+// 				},
+// 				dashScale: {
+// 					enumerable: true,
+// 					get: function () {
 
-						return this.uniforms.dashScale.value;
+// 						return this.uniforms.dashScale.value;
 
-					},
-					set: function (value) {
+// 					},
+// 					set: function (value) {
 
-						this.uniforms.dashScale.value = value;
+// 						this.uniforms.dashScale.value = value;
 
-					}
-				},
-				dashSize: {
-					enumerable: true,
-					get: function () {
+// 					}
+// 				},
+// 				dashSize: {
+// 					enumerable: true,
+// 					get: function () {
 
-						return this.uniforms.dashSize.value;
+// 						return this.uniforms.dashSize.value;
 
-					},
-					set: function (value) {
+// 					},
+// 					set: function (value) {
 
-						this.uniforms.dashSize.value = value;
+// 						this.uniforms.dashSize.value = value;
 
-					}
-				},
-				dashOffset: {
-					enumerable: true,
-					get: function () {
+// 					}
+// 				},
+// 				dashOffset: {
+// 					enumerable: true,
+// 					get: function () {
 
-						return this.uniforms.dashOffset.value;
+// 						return this.uniforms.dashOffset.value;
 
-					},
-					set: function (value) {
+// 					},
+// 					set: function (value) {
 
-						this.uniforms.dashOffset.value = value;
+// 						this.uniforms.dashOffset.value = value;
 
-					}
-				},
-				gapSize: {
-					enumerable: true,
-					get: function () {
+// 					}
+// 				},
+// 				gapSize: {
+// 					enumerable: true,
+// 					get: function () {
 
-						return this.uniforms.gapSize.value;
+// 						return this.uniforms.gapSize.value;
 
-					},
-					set: function (value) {
+// 					},
+// 					set: function (value) {
 
-						this.uniforms.gapSize.value = value;
+// 						this.uniforms.gapSize.value = value;
 
-					}
-				},
-				opacity: {
-					enumerable: true,
-					get: function () {
+// 					}
+// 				},
+// 				opacity: {
+// 					enumerable: true,
+// 					get: function () {
 
-						return this.uniforms.opacity.value;
+// 						return this.uniforms.opacity.value;
 
-					},
-					set: function (value) {
+// 					},
+// 					set: function (value) {
 
-						this.uniforms.opacity.value = value;
+// 						this.uniforms.opacity.value = value;
 
-					}
-				},
-				resolution: {
-					enumerable: true,
-					get: function () {
+// 					}
+// 				},
+// 				resolution: {
+// 					enumerable: true,
+// 					get: function () {
 
-						return this.uniforms.resolution.value;
+// 						return this.uniforms.resolution.value;
 
-					},
-					set: function (value) {
+// 					},
+// 					set: function (value) {
 
-						this.uniforms.resolution.value.copy(value);
+// 						this.uniforms.resolution.value.copy(value);
 
-					}
-				},
-				alphaToCoverage: {
-					enumerable: true,
-					get: function () {
+// 					}
+// 				},
+// 				alphaToCoverage: {
+// 					enumerable: true,
+// 					get: function () {
 
-						return Boolean('ALPHA_TO_COVERAGE' in this.defines);
+// 						return Boolean('ALPHA_TO_COVERAGE' in this.defines);
 
-					},
-					set: function (value) {
+// 					},
+// 					set: function (value) {
 
-						if (Boolean(value) !== Boolean('ALPHA_TO_COVERAGE' in this.defines)) {
+// 						if (Boolean(value) !== Boolean('ALPHA_TO_COVERAGE' in this.defines)) {
 
-							this.needsUpdate = true;
+// 							this.needsUpdate = true;
 
-						}
+// 						}
 
-						if (value === true) {
+// 						if (value === true) {
 
-							this.defines.ALPHA_TO_COVERAGE = '';
-							this.extensions.derivatives = true;
+// 							this.defines.ALPHA_TO_COVERAGE = '';
+// 							this.extensions.derivatives = true;
 
-						} else {
+// 						} else {
 
-							delete this.defines.ALPHA_TO_COVERAGE;
-							this.extensions.derivatives = false;
+// 							delete this.defines.ALPHA_TO_COVERAGE;
+// 							this.extensions.derivatives = false;
 
-						}
+// 						}
 
-					}
-				}
-			});
-			this.setValues(parameters);
+// 					}
+// 				}
+// 			});
+// 			this.setValues(parameters);
 
-		}
+// 		}
 
-	}
+// 	}
 
-	LineMaterial.prototype.isLineMaterial = true;
+// 	LineMaterial.prototype.isLineMaterial = true;
 
-	THREE.LineMaterial = LineMaterial;
+// 	_LineMaterial = LineMaterial;
 
-})();
+// })();
 
-/**
- * @author WestLangley / http://github.com/WestLangley
- *
- */
+// /**
+//  * @author WestLangley / http://github.com/WestLangley
+//  *
+//  */
 
-(function () {
+// (function () {
 
-	const _start = new THREE.Vector3();
+// 	const _start = new Vector3();
 
-	const _end = new THREE.Vector3();
+// 	const _end = new Vector3();
 
-	const _start4 = new THREE.Vector4();
+// 	const _start4 = new Vector4();
 
-	const _end4 = new THREE.Vector4();
+// 	const _end4 = new Vector4();
 
-	const _ssOrigin = new THREE.Vector4();
+// 	const _ssOrigin = new Vector4();
 
-	const _ssOrigin3 = new THREE.Vector3();
+// 	const _ssOrigin3 = new Vector3();
 
-	const _mvMatrix = new THREE.Matrix4();
+// 	const _mvMatrix = new Matrix4();
 
-	const _line = new THREE.Line3();
+// 	const _line = new Line3();
 
-	const _closestPoint = new THREE.Vector3();
+// 	const _closestPoint = new Vector3();
 
-	const _box = new THREE.Box3();
+// 	const _box = new Box3();
 
-	const _sphere = new THREE.Sphere();
+// 	const _sphere = new Sphere();
 
-	const _clipToWorldVector = new THREE.Vector4();
+// 	const _clipToWorldVector = new Vector4();
 
-	class LineSegments2 extends THREE.Mesh {
+// 	class LineSegments2 extends Mesh {
 
-		constructor(geometry = new THREE.LineSegmentsGeometry(), material = new THREE.LineMaterial({
-			color: Math.random() * 0xffffff
-		})) {
+// 		constructor(geometry = new _LineSegmentsGeometry(), material = new _LineMaterial({
+// 			color: Math.random() * 0xffffff
+// 		})) {
 
-			super(geometry, material);
-			this.type = 'LineSegments2';
+// 			super(geometry, material);
+// 			this.type = 'LineSegments2';
 
-		} // for backwards-compatability, but could be a method of THREE.LineSegmentsGeometry...
+// 		} // for backwards-compatability, but could be a method of THREE.LineSegmentsGeometry...
 
 
-		computeLineDistances() {
+// 		computeLineDistances() {
 
-			const geometry = this.geometry;
-			const instanceStart = geometry.attributes.instanceStart;
-			const instanceEnd = geometry.attributes.instanceEnd;
-			const lineDistances = new Float32Array(2 * instanceStart.count);
+// 			const geometry = this.geometry;
+// 			const instanceStart = geometry.attributes.instanceStart;
+// 			const instanceEnd = geometry.attributes.instanceEnd;
+// 			const lineDistances = new Float32Array(2 * instanceStart.count);
 
-			for (let i = 0, j = 0, l = instanceStart.count; i < l; i++, j += 2) {
+// 			for (let i = 0, j = 0, l = instanceStart.count; i < l; i++, j += 2) {
 
-				_start.fromBufferAttribute(instanceStart, i);
+// 				_start.fromBufferAttribute(instanceStart, i);
 
-				_end.fromBufferAttribute(instanceEnd, i);
+// 				_end.fromBufferAttribute(instanceEnd, i);
 
-				lineDistances[j] = j === 0 ? 0 : lineDistances[j - 1];
-				lineDistances[j + 1] = lineDistances[j] + _start.distanceTo(_end);
+// 				lineDistances[j] = j === 0 ? 0 : lineDistances[j - 1];
+// 				lineDistances[j + 1] = lineDistances[j] + _start.distanceTo(_end);
 
-			}
+// 			}
 
-			const instanceDistanceBuffer = new THREE.InstancedInterleavedBuffer(lineDistances, 2, 1); // d0, d1
+// 			const instanceDistanceBuffer = new InstancedInterleavedBuffer(lineDistances, 2, 1); // d0, d1
 
-			geometry.setAttribute('instanceDistanceStart', new THREE.InterleavedBufferAttribute(instanceDistanceBuffer, 1, 0)); // d0
+// 			geometry.setAttribute('instanceDistanceStart', new InterleavedBufferAttribute(instanceDistanceBuffer, 1, 0)); // d0
 
-			geometry.setAttribute('instanceDistanceEnd', new THREE.InterleavedBufferAttribute(instanceDistanceBuffer, 1, 1)); // d1
+// 			geometry.setAttribute('instanceDistanceEnd', new InterleavedBufferAttribute(instanceDistanceBuffer, 1, 1)); // d1
 
-			return this;
+// 			return this;
 
-		}
+// 		}
 
-		raycast(raycaster, intersects) {
+// 		raycast(raycaster, intersects) {
 
-			if (raycaster.camera === null) {
+// 			if (raycaster.camera === null) {
 
-				console.error('LineSegments2: "Raycaster.camera" needs to be set in order to raycast against LineSegments2.');
+// 				console.error('LineSegments2: "Raycaster.camera" needs to be set in order to raycast against LineSegments2.');
 
-			}
+// 			}
 
-			const threshold = raycaster.params.Line2 !== undefined ? raycaster.params.Line2.threshold || 0 : 0;
-			const ray = raycaster.ray;
-			const camera = raycaster.camera;
-			const projectionMatrix = camera.projectionMatrix;
-			const matrixWorld = this.matrixWorld;
-			const geometry = this.geometry;
-			const material = this.material;
-			const resolution = material.resolution;
-			const lineWidth = material.linewidth + threshold;
-			const instanceStart = geometry.attributes.instanceStart;
-			const instanceEnd = geometry.attributes.instanceEnd; // camera forward is negative
+// 			const threshold = raycaster.params.Line2 !== undefined ? raycaster.params.Line2.threshold || 0 : 0;
+// 			const ray = raycaster.ray;
+// 			const camera = raycaster.camera;
+// 			const projectionMatrix = camera.projectionMatrix;
+// 			const matrixWorld = this.matrixWorld;
+// 			const geometry = this.geometry;
+// 			const material = this.material;
+// 			const resolution = material.resolution;
+// 			const lineWidth = material.linewidth + threshold;
+// 			const instanceStart = geometry.attributes.instanceStart;
+// 			const instanceEnd = geometry.attributes.instanceEnd; // camera forward is negative
 
-			const near = - camera.near; // clip space is [ - 1, 1 ] so multiply by two to get the full
-			// width in clip space
+// 			const near = - camera.near; // clip space is [ - 1, 1 ] so multiply by two to get the full
+// 			// width in clip space
 
-			const ssMaxWidth = 2.0 * Math.max(lineWidth / resolution.width, lineWidth / resolution.height); //
-			// check if we intersect the sphere bounds
+// 			const ssMaxWidth = 2.0 * Math.max(lineWidth / resolution.width, lineWidth / resolution.height); //
+// 			// check if we intersect the sphere bounds
 
-			if (geometry.boundingSphere === null) {
+// 			if (geometry.boundingSphere === null) {
 
-				geometry.computeBoundingSphere();
+// 				geometry.computeBoundingSphere();
 
-			}
+// 			}
 
-			_sphere.copy(geometry.boundingSphere).applyMatrix4(matrixWorld);
+// 			_sphere.copy(geometry.boundingSphere).applyMatrix4(matrixWorld);
 
-			const distanceToSphere = Math.max(camera.near, _sphere.distanceToPoint(ray.origin)); // get the w component to scale the world space line width
+// 			const distanceToSphere = Math.max(camera.near, _sphere.distanceToPoint(ray.origin)); // get the w component to scale the world space line width
 
-			_clipToWorldVector.set(0, 0, - distanceToSphere, 1.0).applyMatrix4(camera.projectionMatrix);
+// 			_clipToWorldVector.set(0, 0, - distanceToSphere, 1.0).applyMatrix4(camera.projectionMatrix);
 
-			_clipToWorldVector.multiplyScalar(1.0 / _clipToWorldVector.w);
+// 			_clipToWorldVector.multiplyScalar(1.0 / _clipToWorldVector.w);
 
-			_clipToWorldVector.applyMatrix4(camera.projectionMatrixInverse); // increase the sphere bounds by the worst case line screen space width
+// 			_clipToWorldVector.applyMatrix4(camera.projectionMatrixInverse); // increase the sphere bounds by the worst case line screen space width
 
 
-			const sphereMargin = Math.abs(ssMaxWidth / _clipToWorldVector.w) * 0.5;
-			_sphere.radius += sphereMargin;
+// 			const sphereMargin = Math.abs(ssMaxWidth / _clipToWorldVector.w) * 0.5;
+// 			_sphere.radius += sphereMargin;
 
-			if (raycaster.ray.intersectsSphere(_sphere) === false) {
+// 			if (raycaster.ray.intersectsSphere(_sphere) === false) {
 
-				return;
+// 				return;
 
-			} //
-			// check if we intersect the box bounds
+// 			} //
+// 			// check if we intersect the box bounds
 
 
-			if (geometry.boundingBox === null) {
+// 			if (geometry.boundingBox === null) {
 
-				geometry.computeBoundingBox();
+// 				geometry.computeBoundingBox();
 
-			}
+// 			}
 
-			_box.copy(geometry.boundingBox).applyMatrix4(matrixWorld);
+// 			_box.copy(geometry.boundingBox).applyMatrix4(matrixWorld);
 
-			const distanceToBox = Math.max(camera.near, _box.distanceToPoint(ray.origin)); // get the w component to scale the world space line width
+// 			const distanceToBox = Math.max(camera.near, _box.distanceToPoint(ray.origin)); // get the w component to scale the world space line width
 
-			_clipToWorldVector.set(0, 0, - distanceToBox, 1.0).applyMatrix4(camera.projectionMatrix);
+// 			_clipToWorldVector.set(0, 0, - distanceToBox, 1.0).applyMatrix4(camera.projectionMatrix);
 
-			_clipToWorldVector.multiplyScalar(1.0 / _clipToWorldVector.w);
+// 			_clipToWorldVector.multiplyScalar(1.0 / _clipToWorldVector.w);
 
-			_clipToWorldVector.applyMatrix4(camera.projectionMatrixInverse); // increase the sphere bounds by the worst case line screen space width
+// 			_clipToWorldVector.applyMatrix4(camera.projectionMatrixInverse); // increase the sphere bounds by the worst case line screen space width
 
 
-			const boxMargin = Math.abs(ssMaxWidth / _clipToWorldVector.w) * 0.5;
-			_box.max.x += boxMargin;
-			_box.max.y += boxMargin;
-			_box.max.z += boxMargin;
-			_box.min.x -= boxMargin;
-			_box.min.y -= boxMargin;
-			_box.min.z -= boxMargin;
+// 			const boxMargin = Math.abs(ssMaxWidth / _clipToWorldVector.w) * 0.5;
+// 			_box.max.x += boxMargin;
+// 			_box.max.y += boxMargin;
+// 			_box.max.z += boxMargin;
+// 			_box.min.x -= boxMargin;
+// 			_box.min.y -= boxMargin;
+// 			_box.min.z -= boxMargin;
 
-			if (raycaster.ray.intersectsBox(_box) === false) {
+// 			if (raycaster.ray.intersectsBox(_box) === false) {
 
-				return;
+// 				return;
 
-			} //
-			// pick a point 1 unit out along the ray to avoid the ray origin
-			// sitting at the camera origin which will cause "w" to be 0 when
-			// applying the projection matrix.
+// 			} //
+// 			// pick a point 1 unit out along the ray to avoid the ray origin
+// 			// sitting at the camera origin which will cause "w" to be 0 when
+// 			// applying the projection matrix.
 
 
-			ray.at(1, _ssOrigin); // ndc space [ - 1.0, 1.0 ]
+// 			ray.at(1, _ssOrigin); // ndc space [ - 1.0, 1.0 ]
 
-			_ssOrigin.w = 1;
+// 			_ssOrigin.w = 1;
 
-			_ssOrigin.applyMatrix4(camera.matrixWorldInverse);
+// 			_ssOrigin.applyMatrix4(camera.matrixWorldInverse);
 
-			_ssOrigin.applyMatrix4(projectionMatrix);
+// 			_ssOrigin.applyMatrix4(projectionMatrix);
 
-			_ssOrigin.multiplyScalar(1 / _ssOrigin.w); // screen space
+// 			_ssOrigin.multiplyScalar(1 / _ssOrigin.w); // screen space
 
 
-			_ssOrigin.x *= resolution.x / 2;
-			_ssOrigin.y *= resolution.y / 2;
-			_ssOrigin.z = 0;
+// 			_ssOrigin.x *= resolution.x / 2;
+// 			_ssOrigin.y *= resolution.y / 2;
+// 			_ssOrigin.z = 0;
 
-			_ssOrigin3.copy(_ssOrigin);
+// 			_ssOrigin3.copy(_ssOrigin);
 
-			_mvMatrix.multiplyMatrices(camera.matrixWorldInverse, matrixWorld);
+// 			_mvMatrix.multiplyMatrices(camera.matrixWorldInverse, matrixWorld);
 
-			for (let i = 0, l = instanceStart.count; i < l; i++) {
+// 			for (let i = 0, l = instanceStart.count; i < l; i++) {
 
-				_start4.fromBufferAttribute(instanceStart, i);
+// 				_start4.fromBufferAttribute(instanceStart, i);
 
-				_end4.fromBufferAttribute(instanceEnd, i);
+// 				_end4.fromBufferAttribute(instanceEnd, i);
 
-				_start4.w = 1;
-				_end4.w = 1; // camera space
+// 				_start4.w = 1;
+// 				_end4.w = 1; // camera space
 
-				_start4.applyMatrix4(_mvMatrix);
+// 				_start4.applyMatrix4(_mvMatrix);
 
-				_end4.applyMatrix4(_mvMatrix); // skip the segment if it's entirely behind the camera
+// 				_end4.applyMatrix4(_mvMatrix); // skip the segment if it's entirely behind the camera
 
 
-				var isBehindCameraNear = _start4.z > near && _end4.z > near;
+// 				var isBehindCameraNear = _start4.z > near && _end4.z > near;
 
-				if (isBehindCameraNear) {
+// 				if (isBehindCameraNear) {
 
-					continue;
+// 					continue;
 
-				} // trim the segment if it extends behind camera near
+// 				} // trim the segment if it extends behind camera near
 
 
-				if (_start4.z > near) {
+// 				if (_start4.z > near) {
 
-					const deltaDist = _start4.z - _end4.z;
-					const t = (_start4.z - near) / deltaDist;
+// 					const deltaDist = _start4.z - _end4.z;
+// 					const t = (_start4.z - near) / deltaDist;
 
-					_start4.lerp(_end4, t);
+// 					_start4.lerp(_end4, t);
 
-				} else if (_end4.z > near) {
+// 				} else if (_end4.z > near) {
 
-					const deltaDist = _end4.z - _start4.z;
-					const t = (_end4.z - near) / deltaDist;
+// 					const deltaDist = _end4.z - _start4.z;
+// 					const t = (_end4.z - near) / deltaDist;
 
-					_end4.lerp(_start4, t);
+// 					_end4.lerp(_start4, t);
 
-				} // clip space
+// 				} // clip space
 
 
-				_start4.applyMatrix4(projectionMatrix);
+// 				_start4.applyMatrix4(projectionMatrix);
 
-				_end4.applyMatrix4(projectionMatrix); // ndc space [ - 1.0, 1.0 ]
+// 				_end4.applyMatrix4(projectionMatrix); // ndc space [ - 1.0, 1.0 ]
 
 
-				_start4.multiplyScalar(1 / _start4.w);
+// 				_start4.multiplyScalar(1 / _start4.w);
 
-				_end4.multiplyScalar(1 / _end4.w); // screen space
+// 				_end4.multiplyScalar(1 / _end4.w); // screen space
 
 
-				_start4.x *= resolution.x / 2;
-				_start4.y *= resolution.y / 2;
-				_end4.x *= resolution.x / 2;
-				_end4.y *= resolution.y / 2; // create 2d segment
+// 				_start4.x *= resolution.x / 2;
+// 				_start4.y *= resolution.y / 2;
+// 				_end4.x *= resolution.x / 2;
+// 				_end4.y *= resolution.y / 2; // create 2d segment
 
-				_line.start.copy(_start4);
+// 				_line.start.copy(_start4);
 
-				_line.start.z = 0;
+// 				_line.start.z = 0;
 
-				_line.end.copy(_end4);
+// 				_line.end.copy(_end4);
 
-				_line.end.z = 0; // get closest point on ray to segment
+// 				_line.end.z = 0; // get closest point on ray to segment
 
-				const param = _line.closestPointToPointParameter(_ssOrigin3, true);
+// 				const param = _line.closestPointToPointParameter(_ssOrigin3, true);
 
-				_line.at(param, _closestPoint); // check if the intersection point is within clip space
+// 				_line.at(param, _closestPoint); // check if the intersection point is within clip space
 
 
-				const zPos = THREE.MathUtils.lerp(_start4.z, _end4.z, param);
-				const isInClipSpace = zPos >= - 1 && zPos <= 1;
-				const isInside = _ssOrigin3.distanceTo(_closestPoint) < lineWidth * 0.5;
+// 				const zPos = MathUtils.lerp(_start4.z, _end4.z, param);
+// 				const isInClipSpace = zPos >= - 1 && zPos <= 1;
+// 				const isInside = _ssOrigin3.distanceTo(_closestPoint) < lineWidth * 0.5;
 
-				if (isInClipSpace && isInside) {
+// 				if (isInClipSpace && isInside) {
 
-					_line.start.fromBufferAttribute(instanceStart, i);
+// 					_line.start.fromBufferAttribute(instanceStart, i);
 
-					_line.end.fromBufferAttribute(instanceEnd, i);
+// 					_line.end.fromBufferAttribute(instanceEnd, i);
 
-					_line.start.applyMatrix4(matrixWorld);
+// 					_line.start.applyMatrix4(matrixWorld);
 
-					_line.end.applyMatrix4(matrixWorld);
+// 					_line.end.applyMatrix4(matrixWorld);
 
-					const pointOnLine = new THREE.Vector3();
-					const point = new THREE.Vector3();
-					ray.distanceSqToSegment(_line.start, _line.end, point, pointOnLine);
-					intersects.push({
-						point: point,
-						pointOnLine: pointOnLine,
-						distance: ray.origin.distanceTo(point),
-						object: this,
-						face: null,
-						faceIndex: i,
-						uv: null,
-						uv2: null
-					});
+// 					const pointOnLine = new Vector3();
+// 					const point = new Vector3();
+// 					ray.distanceSqToSegment(_line.start, _line.end, point, pointOnLine);
+// 					intersects.push({
+// 						point: point,
+// 						pointOnLine: pointOnLine,
+// 						distance: ray.origin.distanceTo(point),
+// 						object: this,
+// 						face: null,
+// 						faceIndex: i,
+// 						uv: null,
+// 						uv2: null
+// 					});
 
-				}
+// 				}
 
-			}
+// 			}
 
-		}
+// 		}
 
-	}
+// 	}
 
-	LineSegments2.prototype.LineSegments2 = true;
+// 	LineSegments2.prototype.LineSegments2 = true;
 
-	THREE.LineSegments2 = LineSegments2;
+// 	_LineSegments2 = LineSegments2;
 
-})();
+// })();
 
-/**
- * @author WestLangley / http://github.com/WestLangley
- *
- */
+// /**
+//  * @author WestLangley / http://github.com/WestLangley
+//  *
+//  */
 
-(function () {
+// (function () {
 
-	class Line2 extends THREE.LineSegments2 {
+// 	class Line2 extends _LineSegments2 {
 
-		constructor(geometry = new THREE.LineGeometry(), material = new THREE.LineMaterial({
-			color: Math.random() * 0xffffff
-		})) {
+// 		constructor(geometry = new _LineGeometry(), material = new _LineMaterial({
+// 			color: Math.random() * 0xffffff
+// 		})) {
 
-			super(geometry, material);
-			this.type = 'Line2';
+// 			super(geometry, material);
+// 			this.type = 'Line2';
 
-		}
+// 		}
 
-	}
+// 	}
 
-	Line2.prototype.isLine2 = true;
+// 	Line2.prototype.isLine2 = true;
 
-	THREE.Line2 = Line2;
+// 	_Line2 = Line2;
 
-})();
+// })();
 
-/**
- * @author WestLangley / http://github.com/WestLangley
- *
- */
+// /**
+//  * @author WestLangley / http://github.com/WestLangley
+//  *
+//  */
 
-(function () {
+// (function () {
 
-	const _start = new THREE.Vector3();
+// 	const _start = new Vector3();
 
-	const _end = new THREE.Vector3();
+// 	const _end = new Vector3();
 
-	class Wireframe extends THREE.Mesh {
+// 	class Wireframe extends Mesh {
 
-		constructor(geometry = new THREE.LineSegmentsGeometry(), material = new THREE.LineMaterial({
-			color: Math.random() * 0xffffff
-		})) {
+// 		constructor(geometry = new _LineSegmentsGeometry(), material = new _LineMaterial({
+// 			color: Math.random() * 0xffffff
+// 		})) {
 
-			super(geometry, material);
-			this.type = 'Wireframe';
+// 			super(geometry, material);
+// 			this.type = 'Wireframe';
 
-		} // for backwards-compatability, but could be a method of THREE.LineSegmentsGeometry...
+// 		} // for backwards-compatability, but could be a method of THREE.LineSegmentsGeometry...
 
 
-		computeLineDistances() {
+// 		computeLineDistances() {
 
-			const geometry = this.geometry;
-			const instanceStart = geometry.attributes.instanceStart;
-			const instanceEnd = geometry.attributes.instanceEnd;
-			const lineDistances = new Float32Array(2 * instanceStart.count);
+// 			const geometry = this.geometry;
+// 			const instanceStart = geometry.attributes.instanceStart;
+// 			const instanceEnd = geometry.attributes.instanceEnd;
+// 			const lineDistances = new Float32Array(2 * instanceStart.count);
 
-			for (let i = 0, j = 0, l = instanceStart.count; i < l; i++, j += 2) {
+// 			for (let i = 0, j = 0, l = instanceStart.count; i < l; i++, j += 2) {
 
-				_start.fromBufferAttribute(instanceStart, i);
+// 				_start.fromBufferAttribute(instanceStart, i);
 
-				_end.fromBufferAttribute(instanceEnd, i);
+// 				_end.fromBufferAttribute(instanceEnd, i);
 
-				lineDistances[j] = j === 0 ? 0 : lineDistances[j - 1];
-				lineDistances[j + 1] = lineDistances[j] + _start.distanceTo(_end);
+// 				lineDistances[j] = j === 0 ? 0 : lineDistances[j - 1];
+// 				lineDistances[j + 1] = lineDistances[j] + _start.distanceTo(_end);
 
-			}
+// 			}
 
-			const instanceDistanceBuffer = new THREE.InstancedInterleavedBuffer(lineDistances, 2, 1); // d0, d1
+// 			const instanceDistanceBuffer = new InstancedInterleavedBuffer(lineDistances, 2, 1); // d0, d1
 
-			geometry.setAttribute('instanceDistanceStart', new THREE.InterleavedBufferAttribute(instanceDistanceBuffer, 1, 0)); // d0
+// 			geometry.setAttribute('instanceDistanceStart', new InterleavedBufferAttribute(instanceDistanceBuffer, 1, 0)); // d0
 
-			geometry.setAttribute('instanceDistanceEnd', new THREE.InterleavedBufferAttribute(instanceDistanceBuffer, 1, 1)); // d1
+// 			geometry.setAttribute('instanceDistanceEnd', new InterleavedBufferAttribute(instanceDistanceBuffer, 1, 1)); // d1
 
-			return this;
+// 			return this;
 
-		}
+// 		}
 
-	}
+// 	}
 
-	Wireframe.prototype.isWireframe = true;
+// 	Wireframe.prototype.isWireframe = true;
 
-	THREE.Wireframe = Wireframe;
+// 	_Wireframe = Wireframe;
 
-})();
+// })();

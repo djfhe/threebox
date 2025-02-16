@@ -2,9 +2,9 @@
  * @author peterqliu / https://github.com/peterqliu
  * @author jscastro / https://github.com/jscastro76
  */
-const THREE = require("../three.js");
-const utils = require("../utils/utils.js");
-const ThreeboxConstants = require("../utils/constants.js");
+import { Group, Matrix4, Vector3, OrthographicCamera, Quaternion } from "three";
+import { clamp, makeOrthographicMatrix, makePerspectiveMatrix } from "../utils/utils.js";
+import { WORLD_SIZE, TILE_SIZE, EARTH_CIRCUMFERENCE } from "../utils/constants.js";
 
 function CameraSync(map, camera, world) {
     //    console.log("CameraSync constructor");
@@ -15,15 +15,15 @@ function CameraSync(map, camera, world) {
     this.camera.matrixAutoUpdate = false; // We're in charge of the camera now!
 
     // Postion and configure the world group so we can scale it appropriately when the camera zooms
-    this.world = world || new THREE.Group();
-    this.world.position.x = this.world.position.y = ThreeboxConstants.WORLD_SIZE / 2
+    this.world = world || new Group();
+    this.world.position.x = this.world.position.y = WORLD_SIZE / 2
     this.world.matrixAutoUpdate = false;
 
     // set up basic camera state
     this.state = {
-        translateCenter: new THREE.Matrix4().makeTranslation(ThreeboxConstants.WORLD_SIZE / 2, -ThreeboxConstants.WORLD_SIZE / 2, 0),
-        worldSizeRatio: ThreeboxConstants.TILE_SIZE / ThreeboxConstants.WORLD_SIZE,
-        worldSize: ThreeboxConstants.TILE_SIZE * this.map.transform.scale
+        translateCenter: new Matrix4().makeTranslation(WORLD_SIZE / 2, -WORLD_SIZE / 2, 0),
+        worldSizeRatio: TILE_SIZE / WORLD_SIZE,
+        worldSize: TILE_SIZE * this.map.transform.scale
     };
 
     // Listen for move events from the map and update the Three.js camera
@@ -58,7 +58,7 @@ CameraSync.prototype = {
 
         const t = this.map.transform;
         this.camera.aspect = t.width / t.height; //bug fixed, if aspect is not reset raycast will fail on map resize
-        const offset = t.centerOffset || new THREE.Vector3(); //{ x: t.width / 2, y: t.height / 2 };
+        const offset = t.centerOffset || new Vector3(); //{ x: t.width / 2, y: t.height / 2 };
         let farZ = 0;
         let furthestDistance = 0;
         this.halfFov = t._fov / 2;
@@ -77,7 +77,7 @@ CameraSync.prototype = {
             // this way the far plane is pushed further in the case of negative elevation.
             const minElevationInPixels = t.elevation ? t.elevation.getMinElevationBelowMSL() * pixelsPerMeter : 0;
             const cameraToSeaLevelDistance = ((t._camera.position[2] * worldSize) - minElevationInPixels) / Math.cos(t._pitch);
-            const topHalfSurfaceDistance = Math.sin(fovAboveCenter) * cameraToSeaLevelDistance / Math.sin(utils.clamp(Math.PI - groundAngle - fovAboveCenter, 0.01, Math.PI - 0.01));
+            const topHalfSurfaceDistance = Math.sin(fovAboveCenter) * cameraToSeaLevelDistance / Math.sin(clamp(Math.PI - groundAngle - fovAboveCenter, 0.01, Math.PI - 0.01));
 
             // Calculate z distance of the farthest fragment that should be rendered.
             furthestDistance = pitchAngle * topHalfSurfaceDistance + cameraToSeaLevelDistance;
@@ -96,7 +96,7 @@ CameraSync.prototype = {
             // Add a bit extra to avoid precision problems when a fragment's distance is exactly `furthestDistance`
             farZ = furthestDistance * 1.01;
         }
-        this.cameraTranslateZ = new THREE.Matrix4().makeTranslation(0, 0, this.cameraToCenterDistance);
+        this.cameraTranslateZ = new Matrix4().makeTranslation(0, 0, this.cameraToCenterDistance);
 
         // someday @ansis set further near plane to fix precision for deckgl,so we should fix it to use mapbox-gl v1.3+ correctly
         // https://github.com/mapbox/mapbox-gl-js/commit/5cf6e5f523611bea61dae155db19a7cb19eb825c#diff-5dddfe9d7b5b4413ee54284bc1f7966d
@@ -105,10 +105,10 @@ CameraSync.prototype = {
 
         const h = t.height;
         const w = t.width;
-        if (this.camera instanceof THREE.OrthographicCamera) {
-            this.camera.projectionMatrix = utils.makeOrthographicMatrix(w / - 2, w / 2, h / 2, h / - 2, nearZ, farZ);
+        if (this.camera instanceof OrthographicCamera) {
+            this.camera.projectionMatrix = makeOrthographicMatrix(w / - 2, w / 2, h / 2, h / - 2, nearZ, farZ);
         } else {
-            this.camera.projectionMatrix = utils.makePerspectiveMatrix(t._fov, w / h, nearZ, farZ);
+            this.camera.projectionMatrix = makePerspectiveMatrix(t._fov, w / h, nearZ, farZ);
         }
         this.camera.projectionMatrix.elements[8] = -offset.x * 2 / t.width;
         this.camera.projectionMatrix.elements[9] = offset.y * 2 / t.height;
@@ -123,9 +123,9 @@ CameraSync.prototype = {
         
         let zoomPow = t.scale * this.state.worldSizeRatio;
         // Handle scaling and translation of objects in the map in the world's matrix transform, not the camera
-        let scale = new THREE.Matrix4;
-        let translateMap = new THREE.Matrix4;
-        let rotateMap = new THREE.Matrix4;
+        let scale = new Matrix4;
+        let translateMap = new Matrix4;
+        let rotateMap = new Matrix4;
 
         scale.makeScale(zoomPow, zoomPow, zoomPow);
 
@@ -134,7 +134,7 @@ CameraSync.prototype = {
         translateMap.makeTranslation(-x, y, 0);
         rotateMap.makeRotationZ(Math.PI);
 
-        this.world.matrix = new THREE.Matrix4()
+        this.world.matrix = new Matrix4()
             .premultiply(rotateMap)
             .premultiply(this.state.translateCenter)
             .premultiply(scale)
@@ -164,7 +164,7 @@ CameraSync.prototype = {
     },
 
     circumferenceAtLatitude(latitude) {
-        return ThreeboxConstants.EARTH_CIRCUMFERENCE * Math.cos(latitude * Math.PI / 180);
+        return EARTH_CIRCUMFERENCE * Math.cos(latitude * Math.PI / 180);
     },
 
     calcCameraMatrix(pitch, angle, trz) {
@@ -173,10 +173,10 @@ CameraSync.prototype = {
         const _angle = (angle === undefined) ? t.angle : angle;
         const _trz = (trz === undefined) ? this.cameraTranslateZ : trz;
 
-        return new THREE.Matrix4()
+        return new Matrix4()
             .premultiply(_trz)
-            .premultiply(new THREE.Matrix4().makeRotationX(_pitch))
-            .premultiply(new THREE.Matrix4().makeRotationZ(_angle));
+            .premultiply(new Matrix4().makeRotationX(_pitch))
+            .premultiply(new Matrix4().makeRotationZ(_angle));
     },
 
     updateCameraState() {
@@ -214,15 +214,15 @@ CameraSync.prototype = {
         // worldToCamera: flip * cam^-1 * zScale
         // cameraToWorld: (flip * cam^-1 * zScale)^-1 => (zScale^-1 * cam * flip^-1)
         let t = this.map.transform;
-        const matrix = new THREE.Matrix4();
-        const matrixT = new THREE.Matrix4();
+        const matrix = new Matrix4();
+        const matrixT = new Matrix4();
 
         // Compute inverse of camera matrix and post-multiply negated translation
         const o = t._camera._orientation;
         const p = t._camera.position;
-        const invPosition = new THREE.Vector3(p[0], p[1], p[2]);
+        const invPosition = new Vector3(p[0], p[1], p[2]);
 
-        const quat = new THREE.Quaternion();
+        const quat = new Quaternion();
         quat.set(o[0], o[1], o[2], o[3]);
         const invOrientation = quat.conjugate();
         invPosition.multiplyScalar(-worldSize);
@@ -295,4 +295,4 @@ CameraSync.prototype = {
     }
 }
 
-module.exports = exports = CameraSync;
+export default CameraSync;

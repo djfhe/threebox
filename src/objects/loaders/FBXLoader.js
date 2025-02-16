@@ -1,5 +1,8 @@
-const THREE = require('../../three.js');
-const fflate = require('../fflate.min.js');
+import { Loader, LoaderUtils, FileLoader, TextureLoader, RepeatWrapping, ClampToEdgeWrapping, Texture, MeshPhongMaterial, MeshLambertMaterial, Color, SRGBColorSpace, EquirectangularReflectionMapping, Matrix4, Group, Bone, PropertyBinding, Object3D, PerspectiveCamera, OrthographicCamera, PointLight, DirectionalLight, MathUtils, SpotLight, SkinnedMesh, Mesh, LineBasicMaterial, Line, Vector3, Skeleton, AmbientLight, BufferGeometry, Float32BufferAttribute, Uint16BufferAttribute, Matrix3, Vector4, AnimationClip, Quaternion, Euler, VectorKeyframeTrack, QuaternionKeyframeTrack, NumberKeyframeTrack } from 'three';
+import * as fflate from 'fflate';
+import { unzlibSync } from 'fflate';
+import { FBXLoader as _FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+import { NURBSCurve } from 'three/addons/curves/NURBSCurve.js';
 
 /**co
  * @author Kyle-Larson https://github.com/Kyle-Larson
@@ -39,8 +42,6 @@ const fflate = require('../fflate.min.js');
  */
 
 
-(function () {
-
 	/**
  * THREE.Loader loads FBX file and generates THREE.Group representing FBX scene.
  * Requires FBX file to be >= 7.0 and in ASCII or >= 6400 in Binary format
@@ -61,7 +62,7 @@ const fflate = require('../fflate.min.js');
 	let connections;
 	let sceneGraph;
 
-	class FBXLoader extends THREE.Loader {
+	class FBXLoader extends Loader {
 
 		constructor(manager) {
 
@@ -72,8 +73,8 @@ const fflate = require('../fflate.min.js');
 		load(url, onLoad, onProgress, onError) {
 
 			const scope = this;
-			const path = scope.path === '' ? THREE.LoaderUtils.extractUrlBase(url) : scope.path;
-			const loader = new THREE.FileLoader(this.manager);
+			const path = scope.path === '' ? LoaderUtils.extractUrlBase(url) : scope.path;
+			const loader = new FileLoader(this.manager);
 			loader.setPath(scope.path);
 			loader.setResponseType('arraybuffer');
 			loader.setRequestHeader(scope.requestHeader);
@@ -131,7 +132,7 @@ const fflate = require('../fflate.min.js');
 			} // console.log( fbxTree );
 
 
-			const textureLoader = new THREE.TextureLoader(this.manager).setPath(this.resourcePath || path).setCrossOrigin(this.crossOrigin);
+			const textureLoader = new TextureLoader(this.manager).setPath(this.resourcePath || path).setCrossOrigin(this.crossOrigin);
 			return new FBXTreeParser(textureLoader, this.manager).parse(fbxTree);
 
 		}
@@ -357,8 +358,8 @@ const fflate = require('../fflate.min.js');
 			const valueV = wrapModeV !== undefined ? wrapModeV.value : 0; // http://download.autodesk.com/us/fbx/SDKdocs/FBX_SDK_Help/files/fbxsdkref/class_k_fbx_texture.html#889640e63e2e681259ea81061b85143a
 			// 0: repeat(default), 1: clamp
 
-			texture.wrapS = valueU === 0 ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
-			texture.wrapT = valueV === 0 ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
+			texture.wrapS = valueU === 0 ? RepeatWrapping : ClampToEdgeWrapping;
+			texture.wrapT = valueV === 0 ? RepeatWrapping : ClampToEdgeWrapping;
 
 			if ('Scaling' in textureNode) {
 
@@ -401,7 +402,7 @@ const fflate = require('../fflate.min.js');
 				if (loader === null) {
 
 					console.warn('FBXLoader: TGA loader not found, creating placeholder texture for', textureNode.RelativeFilename);
-					texture = new THREE.Texture();
+					texture = new Texture();
 
 				} else {
 
@@ -413,7 +414,7 @@ const fflate = require('../fflate.min.js');
 			} else if (extension === 'psd') {
 
 				console.warn('FBXLoader: PSD textures are not supported, creating placeholder texture for', textureNode.RelativeFilename);
-				texture = new THREE.Texture();
+				texture = new Texture();
 
 			} else {
 
@@ -471,16 +472,16 @@ const fflate = require('../fflate.min.js');
 			switch (type.toLowerCase()) {
 
 				case 'phong':
-					material = new THREE.MeshPhongMaterial();
+					material = new MeshPhongMaterial();
 					break;
 
 				case 'lambert':
-					material = new THREE.MeshLambertMaterial();
+					material = new MeshLambertMaterial();
 					break;
 
 				default:
 					console.warn('THREE.FBXLoader: unknown material type "%s". Defaulting to THREE.MeshPhongMaterial.', type);
-					material = new THREE.MeshPhongMaterial();
+					material = new MeshPhongMaterial();
 					break;
 
 			}
@@ -505,12 +506,12 @@ const fflate = require('../fflate.min.js');
 
 			if (materialNode.Diffuse) {
 
-				parameters.color = new THREE.Color().fromArray(materialNode.Diffuse.value);
+				parameters.color = new Color().fromArray(materialNode.Diffuse.value);
 
 			} else if (materialNode.DiffuseColor && (materialNode.DiffuseColor.type === 'Color' || materialNode.DiffuseColor.type === 'ColorRGB')) {
 
 				// The blender exporter exports diffuse here instead of in materialNode.Diffuse
-				parameters.color = new THREE.Color().fromArray(materialNode.DiffuseColor.value);
+				parameters.color = new Color().fromArray(materialNode.DiffuseColor.value);
 
 			}
 
@@ -522,12 +523,12 @@ const fflate = require('../fflate.min.js');
 
 			if (materialNode.Emissive) {
 
-				parameters.emissive = new THREE.Color().fromArray(materialNode.Emissive.value);
+				parameters.emissive = new Color().fromArray(materialNode.Emissive.value);
 
 			} else if (materialNode.EmissiveColor && (materialNode.EmissiveColor.type === 'Color' || materialNode.EmissiveColor.type === 'ColorRGB')) {
 
 				// The blender exporter exports emissive color here instead of in materialNode.Emissive
-				parameters.emissive = new THREE.Color().fromArray(materialNode.EmissiveColor.value);
+				parameters.emissive = new Color().fromArray(materialNode.EmissiveColor.value);
 
 			}
 
@@ -563,12 +564,12 @@ const fflate = require('../fflate.min.js');
 
 			if (materialNode.Specular) {
 
-				parameters.specular = new THREE.Color().fromArray(materialNode.Specular.value);
+				parameters.specular = new Color().fromArray(materialNode.Specular.value);
 
 			} else if (materialNode.SpecularColor && materialNode.SpecularColor.type === 'Color') {
 
 				// The blender exporter exports specular color here instead of in materialNode.Specular
-				parameters.specular = new THREE.Color().fromArray(materialNode.SpecularColor.value);
+				parameters.specular = new Color().fromArray(materialNode.SpecularColor.value);
 
 			}
 
@@ -593,7 +594,7 @@ const fflate = require('../fflate.min.js');
 
 						if (parameters.map !== undefined) {
 
-							parameters.map.encoding = THREE.sRGBEncoding;
+							parameters.map.encoding = SRGBColorSpace;
 
 						}
 
@@ -608,7 +609,7 @@ const fflate = require('../fflate.min.js');
 
 						if (parameters.emissiveMap !== undefined) {
 
-							parameters.emissiveMap.encoding = THREE.sRGBEncoding;
+							parameters.emissiveMap.encoding = SRGBColorSpace;
 
 						}
 
@@ -624,8 +625,8 @@ const fflate = require('../fflate.min.js');
 
 						if (parameters.envMap !== undefined) {
 
-							parameters.envMap.mapping = THREE.EquirectangularReflectionMapping;
-							parameters.envMap.encoding = THREE.sRGBEncoding;
+							parameters.envMap.mapping = EquirectangularReflectionMapping;
+							parameters.envMap.encoding = SRGBColorSpace;
 
 						}
 
@@ -636,7 +637,7 @@ const fflate = require('../fflate.min.js');
 
 						if (parameters.specularMap !== undefined) {
 
-							parameters.specularMap.encoding = THREE.sRGBEncoding;
+							parameters.specularMap.encoding = SRGBColorSpace;
 
 						}
 
@@ -743,7 +744,7 @@ const fflate = require('../fflate.min.js');
 					ID: child.ID,
 					indices: [],
 					weights: [],
-					transformLink: new THREE.Matrix4().fromArray(boneNode.TransformLink.a) // transform: new THREE.Matrix4().fromArray( boneNode.Transform.a ),
+					transformLink: new Matrix4().fromArray(boneNode.TransformLink.a) // transform: new THREE.Matrix4().fromArray( boneNode.Transform.a ),
 					// linkMode: boneNode.Mode,
 
 				};
@@ -797,7 +798,7 @@ const fflate = require('../fflate.min.js');
 
 		parseScene(deformers, geometryMap, materialMap) {
 
-			sceneGraph = new THREE.Group();
+			sceneGraph = new Group();
 			const modelMap = this.parseModels(deformers.skeletons, geometryMap, materialMap);
 			const modelNodes = fbxTree.Objects.Model;
 			const scope = this;
@@ -888,17 +889,17 @@ const fflate = require('../fflate.min.js');
 
 						case 'LimbNode':
 						case 'Root':
-							model = new THREE.Bone();
+							model = new Bone();
 							break;
 
 						case 'Null':
 						default:
-							model = new THREE.Group();
+							model = new Group();
 							break;
 
 					}
 
-					model.name = node.attrName ? THREE.PropertyBinding.sanitizeNodeName(node.attrName) : '';
+					model.name = node.attrName ? PropertyBinding.sanitizeNodeName(node.attrName) : '';
 					model.ID = id;
 
 				}
@@ -925,10 +926,10 @@ const fflate = require('../fflate.min.js');
 						if (rawBone.ID === parent.ID) {
 
 							const subBone = bone;
-							bone = new THREE.Bone();
+							bone = new Bone();
 							bone.matrixWorld.copy(rawBone.transformLink); // set name and id here - otherwise in cases where "subBone" is created it will not have a name / id
 
-							bone.name = name ? THREE.PropertyBinding.sanitizeNodeName(name) : '';
+							bone.name = name ? PropertyBinding.sanitizeNodeName(name) : '';
 							bone.ID = id;
 							skeleton.bones[i] = bone; // In cases where a bone is shared between multiple meshes
 							// duplicate the bone here and and it as a child of the first bone
@@ -969,7 +970,7 @@ const fflate = require('../fflate.min.js');
 
 			if (cameraAttribute === undefined) {
 
-				model = new THREE.Object3D();
+				model = new Object3D();
 
 			} else {
 
@@ -1022,18 +1023,18 @@ const fflate = require('../fflate.min.js');
 
 					case 0:
 						// Perspective
-						model = new THREE.PerspectiveCamera(fov, aspect, nearClippingPlane, farClippingPlane);
+						model = new PerspectiveCamera(fov, aspect, nearClippingPlane, farClippingPlane);
 						if (focalLength !== null) model.setFocalLength(focalLength);
 						break;
 
 					case 1:
 						// Orthographic
-						model = new THREE.OrthographicCamera(- width / 2, width / 2, height / 2, - height / 2, nearClippingPlane, farClippingPlane);
+						model = new OrthographicCamera(- width / 2, width / 2, height / 2, - height / 2, nearClippingPlane, farClippingPlane);
 						break;
 
 					default:
 						console.warn('THREE.FBXLoader: Unknown camera type ' + type + '.');
-						model = new THREE.Object3D();
+						model = new Object3D();
 						break;
 
 				}
@@ -1063,7 +1064,7 @@ const fflate = require('../fflate.min.js');
 
 			if (lightAttribute === undefined) {
 
-				model = new THREE.Object3D();
+				model = new Object3D();
 
 			} else {
 
@@ -1083,7 +1084,7 @@ const fflate = require('../fflate.min.js');
 
 				if (lightAttribute.Color !== undefined) {
 
-					color = new THREE.Color().fromArray(lightAttribute.Color.value);
+					color = new Color().fromArray(lightAttribute.Color.value);
 
 				}
 
@@ -1118,12 +1119,12 @@ const fflate = require('../fflate.min.js');
 
 					case 0:
 						// Point
-						model = new THREE.PointLight(color, intensity, distance, decay);
+						model = new PointLight(color, intensity, distance, decay);
 						break;
 
 					case 1:
 						// Directional
-						model = new THREE.DirectionalLight(color, intensity);
+						model = new DirectionalLight(color, intensity);
 						break;
 
 					case 2:
@@ -1132,7 +1133,7 @@ const fflate = require('../fflate.min.js');
 
 						if (lightAttribute.InnerAngle !== undefined) {
 
-							angle = THREE.MathUtils.degToRad(lightAttribute.InnerAngle.value);
+							angle = MathUtils.degToRad(lightAttribute.InnerAngle.value);
 
 						}
 
@@ -1143,17 +1144,17 @@ const fflate = require('../fflate.min.js');
 							// TODO: this is not correct - FBX calculates outer and inner angle in degrees
 							// with OuterAngle > InnerAngle && OuterAngle <= Math.PI
 							// while three.js uses a penumbra between (0, 1) to attenuate the inner angle
-							penumbra = THREE.MathUtils.degToRad(lightAttribute.OuterAngle.value);
+							penumbra = MathUtils.degToRad(lightAttribute.OuterAngle.value);
 							penumbra = Math.max(penumbra, 1);
 
 						}
 
-						model = new THREE.SpotLight(color, intensity, distance, angle, penumbra, decay);
+						model = new SpotLight(color, intensity, distance, angle, penumbra, decay);
 						break;
 
 					default:
 						console.warn('THREE.FBXLoader: Unknown light type ' + lightAttribute.LightType.value + ', defaulting to a THREE.PointLight.');
-						model = new THREE.PointLight(color, intensity);
+						model = new PointLight(color, intensity);
 						break;
 
 				}
@@ -1203,7 +1204,7 @@ const fflate = require('../fflate.min.js');
 
 			} else {
 
-				material = new THREE.MeshPhongMaterial({
+				material = new MeshPhongMaterial({
 					color: 0xcccccc
 				});
 				materials.push(material);
@@ -1222,12 +1223,12 @@ const fflate = require('../fflate.min.js');
 
 			if (geometry.FBX_Deformer) {
 
-				model = new THREE.SkinnedMesh(geometry, material);
+				model = new SkinnedMesh(geometry, material);
 				model.normalizeSkinWeights();
 
 			} else {
 
-				model = new THREE.Mesh(geometry, material);
+				model = new Mesh(geometry, material);
 
 			}
 
@@ -1244,11 +1245,11 @@ const fflate = require('../fflate.min.js');
 
 			}, null); // FBX does not list materials for Nurbs lines, so we'll just put our own in here.
 
-			const material = new THREE.LineBasicMaterial({
+			const material = new LineBasicMaterial({
 				color: 0x3300ff,
 				linewidth: 1
 			});
-			return new THREE.Line(geometry, material);
+			return new Line(geometry, material);
 
 		} // parse the model node for transform data
 
@@ -1294,7 +1295,7 @@ const fflate = require('../fflate.min.js');
 							} else {
 
 								// Cameras and other Object3Ds
-								model.lookAt(new THREE.Vector3().fromArray(pos));
+								model.lookAt(new Vector3().fromArray(pos));
 
 							}
 
@@ -1327,7 +1328,7 @@ const fflate = require('../fflate.min.js');
 							if (modelMap.has(geoConnParent.ID)) {
 
 								const model = modelMap.get(geoConnParent.ID);
-								model.bind(new THREE.Skeleton(skeleton.bones), bindMatrices[geoConnParent.ID]);
+								model.bind(new Skeleton(skeleton.bones), bindMatrices[geoConnParent.ID]);
 
 							}
 
@@ -1359,13 +1360,13 @@ const fflate = require('../fflate.min.js');
 
 							poseNodes.forEach(function (poseNode) {
 
-								bindMatrices[poseNode.Node] = new THREE.Matrix4().fromArray(poseNode.Matrix.a);
+								bindMatrices[poseNode.Node] = new Matrix4().fromArray(poseNode.Matrix.a);
 
 							});
 
 						} else {
 
-							bindMatrices[poseNodes.Node] = new THREE.Matrix4().fromArray(poseNodes.Matrix.a);
+							bindMatrices[poseNodes.Node] = new Matrix4().fromArray(poseNodes.Matrix.a);
 
 						}
 
@@ -1391,8 +1392,8 @@ const fflate = require('../fflate.min.js');
 
 				if (r !== 0 || g !== 0 || b !== 0) {
 
-					const color = new THREE.Color(r, g, b);
-					sceneGraph.add(new THREE.AmbientLight(color, 1));
+					const color = new Color(r, g, b);
+					sceneGraph.add(new AmbientLight(color, 1));
 
 				}
 
@@ -1489,24 +1490,24 @@ const fflate = require('../fflate.min.js');
 
 		genGeometry(geoNode, skeleton, morphTargets, preTransform) {
 
-			const geo = new THREE.BufferGeometry();
+			const geo = new BufferGeometry();
 			if (geoNode.attrName) geo.name = geoNode.attrName;
 			const geoInfo = this.parseGeoNode(geoNode, skeleton);
 			const buffers = this.genBuffers(geoInfo);
-			const positionAttribute = new THREE.Float32BufferAttribute(buffers.vertex, 3);
+			const positionAttribute = new Float32BufferAttribute(buffers.vertex, 3);
 			positionAttribute.applyMatrix4(preTransform);
 			geo.setAttribute('position', positionAttribute);
 
 			if (buffers.colors.length > 0) {
 
-				geo.setAttribute('color', new THREE.Float32BufferAttribute(buffers.colors, 3));
+				geo.setAttribute('color', new Float32BufferAttribute(buffers.colors, 3));
 
 			}
 
 			if (skeleton) {
 
-				geo.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(buffers.weightsIndices, 4));
-				geo.setAttribute('skinWeight', new THREE.Float32BufferAttribute(buffers.vertexWeights, 4)); // used later to bind the skeleton to the model
+				geo.setAttribute('skinIndex', new Uint16BufferAttribute(buffers.weightsIndices, 4));
+				geo.setAttribute('skinWeight', new Float32BufferAttribute(buffers.vertexWeights, 4)); // used later to bind the skeleton to the model
 
 				geo.FBX_Deformer = skeleton;
 
@@ -1514,8 +1515,8 @@ const fflate = require('../fflate.min.js');
 
 			if (buffers.normal.length > 0) {
 
-				const normalMatrix = new THREE.Matrix3().getNormalMatrix(preTransform);
-				const normalAttribute = new THREE.Float32BufferAttribute(buffers.normal, 3);
+				const normalMatrix = new Matrix3().getNormalMatrix(preTransform);
+				const normalAttribute = new Float32BufferAttribute(buffers.normal, 3);
 				normalAttribute.applyNormalMatrix(normalMatrix);
 				geo.setAttribute('normal', normalAttribute);
 
@@ -1532,7 +1533,7 @@ const fflate = require('../fflate.min.js');
 
 				}
 
-				geo.setAttribute(name, new THREE.Float32BufferAttribute(buffers.uvs[i], 2));
+				geo.setAttribute(name, new Float32BufferAttribute(buffers.uvs[i], 2));
 
 			});
 
@@ -1973,7 +1974,7 @@ const fflate = require('../fflate.min.js');
 				vertexPositions: morphPositions
 			};
 			const morphBuffers = this.genBuffers(morphGeoInfo);
-			const positionAttribute = new THREE.Float32BufferAttribute(morphBuffers.vertex, 3);
+			const positionAttribute = new Float32BufferAttribute(morphBuffers.vertex, 3);
 			positionAttribute.name = name || morphGeoNode.attrName;
 			positionAttribute.applyMatrix4(preTransform);
 			parentGeo.morphAttributes.position.push(positionAttribute);
@@ -2103,10 +2104,10 @@ const fflate = require('../fflate.min.js');
 
 		parseNurbsGeometry(geoNode) {
 
-			if (THREE.NURBSCurve === undefined) {
+			if (NURBSCurve === undefined) {
 
 				console.error('THREE.FBXLoader: The loader relies on THREE.NURBSCurve for any nurbs present in the model. Nurbs will show up as empty geometry.');
-				return new THREE.BufferGeometry();
+				return new BufferGeometry();
 
 			}
 
@@ -2115,7 +2116,7 @@ const fflate = require('../fflate.min.js');
 			if (isNaN(order)) {
 
 				console.error('THREE.FBXLoader: Invalid Order %s given for geometry ID: %s', geoNode.Order, geoNode.id);
-				return new THREE.BufferGeometry();
+				return new BufferGeometry();
 
 			}
 
@@ -2126,7 +2127,7 @@ const fflate = require('../fflate.min.js');
 
 			for (let i = 0, l = pointsValues.length; i < l; i += 4) {
 
-				controlPoints.push(new THREE.Vector4().fromArray(pointsValues, i));
+				controlPoints.push(new Vector4().fromArray(pointsValues, i));
 
 			}
 
@@ -2149,9 +2150,9 @@ const fflate = require('../fflate.min.js');
 
 			}
 
-			const curve = new THREE.NURBSCurve(degree, knots, controlPoints, startKnot, endKnot);
+			const curve = new NURBSCurve(degree, knots, controlPoints, startKnot, endKnot);
 			const points = curve.getPoints(controlPoints.length * 12);
-			return new THREE.BufferGeometry().setFromPoints(points);
+			return new BufferGeometry().setFromPoints(points);
 
 		}
 
@@ -2319,7 +2320,7 @@ const fflate = require('../fflate.min.js');
 										}
 
 										const node = {
-											modelName: rawModel.attrName ? THREE.PropertyBinding.sanitizeNodeName(rawModel.attrName) : '',
+											modelName: rawModel.attrName ? PropertyBinding.sanitizeNodeName(rawModel.attrName) : '',
 											ID: rawModel.id,
 											initialPosition: [0, 0, 0],
 											initialRotation: [0, 0, 0],
@@ -2335,7 +2336,7 @@ const fflate = require('../fflate.min.js');
 											}
 
 										});
-										if (!node.transform) node.transform = new THREE.Matrix4(); // if the animated model is pre rotated, we'll have to apply the pre rotations to every
+										if (!node.transform) node.transform = new Matrix4(); // if the animated model is pre rotated, we'll have to apply the pre rotations to every
 										// animation value as well
 
 										if ('PreRotation' in rawModel) node.preRotation = rawModel.PreRotation.value;
@@ -2363,7 +2364,7 @@ const fflate = require('../fflate.min.js');
 									const modelID = connections.get(geoID).parents[0].ID;
 									const rawModel = fbxTree.Objects.Model[modelID];
 									const node = {
-										modelName: rawModel.attrName ? THREE.PropertyBinding.sanitizeNodeName(rawModel.attrName) : '',
+										modelName: rawModel.attrName ? PropertyBinding.sanitizeNodeName(rawModel.attrName) : '',
 										morphName: fbxTree.Objects.Deformer[deformerID].attrName
 									};
 									layerCurveNodes[i] = node;
@@ -2428,19 +2429,19 @@ const fflate = require('../fflate.min.js');
 				tracks = tracks.concat(scope.generateTracks(rawTracks));
 
 			});
-			return new THREE.AnimationClip(rawClip.name, - 1, tracks);
+			return new AnimationClip(rawClip.name, - 1, tracks);
 
 		}
 
 		generateTracks(rawTracks) {
 
 			const tracks = [];
-			let initialPosition = new THREE.Vector3();
-			let initialRotation = new THREE.Quaternion();
-			let initialScale = new THREE.Vector3();
+			let initialPosition = new Vector3();
+			let initialRotation = new Quaternion();
+			let initialScale = new Vector3();
 			if (rawTracks.transform) rawTracks.transform.decompose(initialPosition, initialRotation, initialScale);
 			initialPosition = initialPosition.toArray();
-			initialRotation = new THREE.Euler().setFromQuaternion(initialRotation, rawTracks.eulerOrder).toArray();
+			initialRotation = new Euler().setFromQuaternion(initialRotation, rawTracks.eulerOrder).toArray();
 			initialScale = initialScale.toArray();
 
 			if (rawTracks.T !== undefined && Object.keys(rawTracks.T.curves).length > 0) {
@@ -2479,7 +2480,7 @@ const fflate = require('../fflate.min.js');
 
 			const times = this.getTimesForAllAxes(curves);
 			const values = this.getKeyframeTrackValues(times, curves, initialValue);
-			return new THREE.VectorKeyframeTrack(modelName + '.' + type, times, values);
+			return new VectorKeyframeTrack(modelName + '.' + type, times, values);
 
 		}
 
@@ -2488,21 +2489,21 @@ const fflate = require('../fflate.min.js');
 			if (curves.x !== undefined) {
 
 				this.interpolateRotations(curves.x);
-				curves.x.values = curves.x.values.map(THREE.MathUtils.degToRad);
+				curves.x.values = curves.x.values.map(MathUtils.degToRad);
 
 			}
 
 			if (curves.y !== undefined) {
 
 				this.interpolateRotations(curves.y);
-				curves.y.values = curves.y.values.map(THREE.MathUtils.degToRad);
+				curves.y.values = curves.y.values.map(MathUtils.degToRad);
 
 			}
 
 			if (curves.z !== undefined) {
 
 				this.interpolateRotations(curves.z);
-				curves.z.values = curves.z.values.map(THREE.MathUtils.degToRad);
+				curves.z.values = curves.z.values.map(MathUtils.degToRad);
 
 			}
 
@@ -2511,24 +2512,24 @@ const fflate = require('../fflate.min.js');
 
 			if (preRotation !== undefined) {
 
-				preRotation = preRotation.map(THREE.MathUtils.degToRad);
+				preRotation = preRotation.map(MathUtils.degToRad);
 				preRotation.push(eulerOrder);
-				preRotation = new THREE.Euler().fromArray(preRotation);
-				preRotation = new THREE.Quaternion().setFromEuler(preRotation);
+				preRotation = new Euler().fromArray(preRotation);
+				preRotation = new Quaternion().setFromEuler(preRotation);
 
 			}
 
 			if (postRotation !== undefined) {
 
-				postRotation = postRotation.map(THREE.MathUtils.degToRad);
+				postRotation = postRotation.map(MathUtils.degToRad);
 				postRotation.push(eulerOrder);
-				postRotation = new THREE.Euler().fromArray(postRotation);
-				postRotation = new THREE.Quaternion().setFromEuler(postRotation).invert();
+				postRotation = new Euler().fromArray(postRotation);
+				postRotation = new Quaternion().setFromEuler(postRotation).invert();
 
 			}
 
-			const quaternion = new THREE.Quaternion();
-			const euler = new THREE.Euler();
+			const quaternion = new Quaternion();
+			const euler = new Euler();
 			const quaternionValues = [];
 
 			for (let i = 0; i < values.length; i += 3) {
@@ -2541,7 +2542,7 @@ const fflate = require('../fflate.min.js');
 
 			}
 
-			return new THREE.QuaternionKeyframeTrack(modelName + '.quaternion', times, quaternionValues);
+			return new QuaternionKeyframeTrack(modelName + '.quaternion', times, quaternionValues);
 
 		}
 
@@ -2554,7 +2555,7 @@ const fflate = require('../fflate.min.js');
 
 			});
 			const morphNum = sceneGraph.getObjectByName(rawTracks.modelName).morphTargetDictionary[rawTracks.morphName];
-			return new THREE.NumberKeyframeTrack(rawTracks.modelName + '.morphTargetInfluences[' + morphNum + ']', curves.times, values);
+			return new NumberKeyframeTrack(rawTracks.modelName + '.morphTargetInfluences[' + morphNum + ']', curves.times, values);
 
 		} // For all animated objects, times are defined separately for each axis
 		// Here we'll combine the times into one sorted array without duplicates
@@ -3294,7 +3295,7 @@ const fflate = require('../fflate.min.js');
 
 					}
 
-					const data = fflate.unzlibSync(new Uint8Array(reader.getArrayBuffer(compressedLength))); // eslint-disable-line no-undef
+					const data = unzlibSync(new Uint8Array(reader.getArrayBuffer(compressedLength))); // eslint-disable-line no-undef
 
 					const reader2 = new BinaryReader(data.buffer);
 
@@ -3560,7 +3561,7 @@ const fflate = require('../fflate.min.js');
 
 			const nullByte = a.indexOf(0);
 			if (nullByte >= 0) a = a.slice(0, nullByte);
-			return THREE.LoaderUtils.decodeText(new Uint8Array(a));
+			return LoaderUtils.decodeText(new Uint8Array(a));
 
 		}
 
@@ -3675,31 +3676,31 @@ const fflate = require('../fflate.min.js');
 
 	}
 
-	const tempEuler = new THREE.Euler();
-	const tempVec = new THREE.Vector3(); // generate transformation from FBX transform data
+	const tempEuler = new Euler();
+	const tempVec = new Vector3(); // generate transformation from FBX transform data
 	// ref: https://help.autodesk.com/view/FBX/2017/ENU/?guid=__files_GUID_10CDD63C_79C1_4F2D_BB28_AD2BE65A02ED_htm
 	// ref: http://docs.autodesk.com/FBX/2014/ENU/FBX-SDK-Documentation/index.html?url=cpp_ref/_transformations_2main_8cxx-example.html,topicNumber=cpp_ref__transformations_2main_8cxx_example_htmlfc10a1e1-b18d-4e72-9dc0-70d0f1959f5e
 
 	function generateTransform(transformData) {
 
-		const lTranslationM = new THREE.Matrix4();
-		const lPreRotationM = new THREE.Matrix4();
-		const lRotationM = new THREE.Matrix4();
-		const lPostRotationM = new THREE.Matrix4();
-		const lScalingM = new THREE.Matrix4();
-		const lScalingPivotM = new THREE.Matrix4();
-		const lScalingOffsetM = new THREE.Matrix4();
-		const lRotationOffsetM = new THREE.Matrix4();
-		const lRotationPivotM = new THREE.Matrix4();
-		const lParentGX = new THREE.Matrix4();
-		const lParentLX = new THREE.Matrix4();
-		const lGlobalT = new THREE.Matrix4();
+		const lTranslationM = new Matrix4();
+		const lPreRotationM = new Matrix4();
+		const lRotationM = new Matrix4();
+		const lPostRotationM = new Matrix4();
+		const lScalingM = new Matrix4();
+		const lScalingPivotM = new Matrix4();
+		const lScalingOffsetM = new Matrix4();
+		const lRotationOffsetM = new Matrix4();
+		const lRotationPivotM = new Matrix4();
+		const lParentGX = new Matrix4();
+		const lParentLX = new Matrix4();
+		const lGlobalT = new Matrix4();
 		const inheritType = transformData.inheritType ? transformData.inheritType : 0;
 		if (transformData.translation) lTranslationM.setPosition(tempVec.fromArray(transformData.translation));
 
 		if (transformData.preRotation) {
 
-			const array = transformData.preRotation.map(THREE.MathUtils.degToRad);
+			const array = transformData.preRotation.map(MathUtils.degToRad);
 			array.push(transformData.eulerOrder);
 			lPreRotationM.makeRotationFromEuler(tempEuler.fromArray(array));
 
@@ -3707,7 +3708,7 @@ const fflate = require('../fflate.min.js');
 
 		if (transformData.rotation) {
 
-			const array = transformData.rotation.map(THREE.MathUtils.degToRad);
+			const array = transformData.rotation.map(MathUtils.degToRad);
 			array.push(transformData.eulerOrder);
 			lRotationM.makeRotationFromEuler(tempEuler.fromArray(array));
 
@@ -3715,7 +3716,7 @@ const fflate = require('../fflate.min.js');
 
 		if (transformData.postRotation) {
 
-			const array = transformData.postRotation.map(THREE.MathUtils.degToRad);
+			const array = transformData.postRotation.map(MathUtils.degToRad);
 			array.push(transformData.eulerOrder);
 			lPostRotationM.makeRotationFromEuler(tempEuler.fromArray(array));
 			lPostRotationM.invert();
@@ -3738,15 +3739,15 @@ const fflate = require('../fflate.min.js');
 
 		const lLRM = lPreRotationM.clone().multiply(lRotationM).multiply(lPostRotationM); // Global Rotation
 
-		const lParentGRM = new THREE.Matrix4();
+		const lParentGRM = new Matrix4();
 		lParentGRM.extractRotation(lParentGX); // Global Shear*Scaling
 
-		const lParentTM = new THREE.Matrix4();
+		const lParentTM = new Matrix4();
 		lParentTM.copyPosition(lParentGX);
 		const lParentGRSM = lParentTM.clone().invert().multiply(lParentGX);
 		const lParentGSM = lParentGRM.clone().invert().multiply(lParentGRSM);
 		const lLSM = lScalingM;
-		const lGlobalRS = new THREE.Matrix4();
+		const lGlobalRS = new Matrix4();
 
 		if (inheritType === 0) {
 
@@ -3758,7 +3759,7 @@ const fflate = require('../fflate.min.js');
 
 		} else {
 
-			const lParentLSM = new THREE.Matrix4().scale(new THREE.Vector3().setFromMatrixScale(lParentLX));
+			const lParentLSM = new Matrix4().scale(new Vector3().setFromMatrixScale(lParentLX));
 			const lParentLSM_inv = lParentLSM.clone().invert();
 			const lParentGSM_noLocal = lParentGSM.clone().multiply(lParentLSM_inv);
 			lGlobalRS.copy(lParentGRM).multiply(lLRM).multiply(lParentGSM_noLocal).multiply(lLSM);
@@ -3769,7 +3770,7 @@ const fflate = require('../fflate.min.js');
 		const lScalingPivotM_inv = lScalingPivotM.clone().invert(); // Calculate the local transform matrix
 
 		let lTransform = lTranslationM.clone().multiply(lRotationOffsetM).multiply(lRotationPivotM).multiply(lPreRotationM).multiply(lRotationM).multiply(lPostRotationM).multiply(lRotationPivotM_inv).multiply(lScalingOffsetM).multiply(lScalingPivotM).multiply(lScalingM).multiply(lScalingPivotM_inv);
-		const lLocalTWithAllPivotAndOffsetInfo = new THREE.Matrix4().copyPosition(lTransform);
+		const lLocalTWithAllPivotAndOffsetInfo = new Matrix4().copyPosition(lTransform);
 		const lGlobalTranslation = lParentGX.clone().multiply(lLocalTWithAllPivotAndOffsetInfo);
 		lGlobalT.copyPosition(lGlobalTranslation);
 		lTransform = lGlobalT.clone().multiply(lGlobalRS); // from global to local
@@ -3821,7 +3822,7 @@ const fflate = require('../fflate.min.js');
 
 		if (from === undefined) from = 0;
 		if (to === undefined) to = buffer.byteLength;
-		return THREE.LoaderUtils.decodeText(new Uint8Array(buffer, from, to));
+		return LoaderUtils.decodeText(new Uint8Array(buffer, from, to));
 
 	}
 
@@ -3854,8 +3855,4 @@ const fflate = require('../fflate.min.js');
 
 	}
 
-	THREE.FBXLoader = FBXLoader;
-
-})();
-
-module.exports = exports = THREE.FBXLoader;
+export default FBXLoader;

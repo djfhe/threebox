@@ -112,4 +112,4 @@ Validate.prototype = {
 }
 
 
-module.exports = exports = Validate;
+export default Validate;

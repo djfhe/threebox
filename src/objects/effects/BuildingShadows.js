@@ -1,4 +1,4 @@
-const SunCalc = require('../../utils/suncalc.js');
+import SunCalc from '../../utils/suncalc.js';
 
 class BuildingShadows {
 	constructor(options, threebox) {
@@ -161,4 +161,4 @@ class BuildingShadows {
 }
 
 
-module.exports = exports = BuildingShadows;
+export default BuildingShadows;

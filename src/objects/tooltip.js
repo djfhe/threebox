@@ -1,7 +1,6 @@
-const utils = require("../utils/utils.js");
-const Objects = require('./objects.js');
-const CSS2D = require('./CSS2DRenderer.js');
-var THREE = require("../three.js");
+import * as utils from "../utils/utils.js";
+import Objects from './objects.js';
+import * as CSS2D from './CSS2DRenderer.js';
 
 function Tooltip(obj) {
 
@@ -21,4 +20,4 @@ function Tooltip(obj) {
 
 }
 
-module.exports = exports = Tooltip;
+export default Tooltip;

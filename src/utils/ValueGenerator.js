@@ -8,4 +8,4 @@ const ValueGenerator = function(input) {
     return undefined;
 }
 
-module.exports = exports = ValueGenerator;
+export default ValueGenerator;

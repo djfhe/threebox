@@ -2,7 +2,7 @@
  * @author jscastro / https://github.com/jscastro76
  */
 
-const THREE = require("./CSS2DRenderer.js");
+import * as THREE from "./CSS2DRenderer.js";
 
 function LabelRenderer(map) {
 
@@ -67,4 +67,4 @@ function LabelRenderer(map) {
 
 }
 
-module.exports = exports = LabelRenderer;
+export default LabelRenderer;

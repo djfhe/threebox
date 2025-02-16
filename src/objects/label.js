@@ -1,9 +1,9 @@
 /**
  * @author jscastro / https://github.com/jscastro76
  */
-const utils = require("../utils/utils.js");
-const Objects = require('./objects.js');
-const CSS2D = require('./CSS2DRenderer.js');
+import * as utils from "../utils/utils.js";
+import Objects from './objects.js';
+import * as CSS2D from './CSS2DRenderer.js';
 
 function Label(obj) {
 
@@ -23,4 +23,4 @@ function Label(obj) {
 }
 
 
-module.exports = exports = Label;
+export default Label;

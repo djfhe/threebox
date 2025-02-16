@@ -1,481 +1,409 @@
 /**
- * @author peterqliu / https://github.com/peterqliu
- * @author jscastro / https://github.com/jscastro76
-*/
-const THREE = require('../three.js');
-const utils = require("../utils/utils.js");
-
-function AnimationManager(map) {
-
-    this.map = map
-    this.enrolledObjects = [];    
-    this.previousFrameTime;
-
-};
-
-AnimationManager.prototype = {
-
-	unenroll: function (obj) {
-		this.enrolledObjects.splice(this.enrolledObjects.indexOf(obj), 1);
-	},
-
-	enroll: function (obj) {
-
-		//[jscastro] add the object default animations
-		obj.clock = new THREE.Clock();
-		obj.hasDefaultAnimation = false;
-		obj.defaultAction;
-		obj.actions = [];
-		obj.mixer;
-
-		//[jscastro] if the object includes animations
-		if (obj.animations && obj.animations.length > 0) {
-
-			obj.hasDefaultAnimation = true;
-
-			//check first if a defaultAnimation is defined by options
-			let daIndex = (obj.userData.defaultAnimation ? obj.userData.defaultAnimation : 0);
-			obj.mixer = new THREE.AnimationMixer(obj);
-
-			setAction(daIndex);
-		}
-
-		//[jscastro] set the action to play
-		function setAction(animationIndex) {
-			for (let i = 0; i < obj.animations.length; i++) {
-
-				if (animationIndex > obj.animations.length)
-					console.log("The animation index " + animationIndex + " doesn't exist for this object");
-				let animation = obj.animations[i];
-				let action = obj.mixer.clipAction(animation);
-				obj.actions.push(action);
-
-				//select the default animation and set the weight to 1
-				if (animationIndex === i) {
-					obj.defaultAction = action;
-					action.setEffectiveWeight(1);
-				}
-				else {
-					action.setEffectiveWeight(0);
-				}
-				action.play();
-
-			}
-		}
-
-		let _isPlaying = false;
-		//[jscastro] added property for isPlaying state
-		Object.defineProperty(obj, 'isPlaying', {
-			get() { return _isPlaying; },
-			set(value) {
-				if (_isPlaying != value) {
-					_isPlaying = value;
-					// Dispatch new event IsPlayingChanged
-					obj.dispatchEvent({ type: 'IsPlayingChanged', detail: obj});
-				}
-			}
-		})
-
-		/* Extend the provided object with animation-specific properties and track in the animation manager */
-		this.enrolledObjects.push(obj);
-
-		// Give this object its own internal animation queue
-		obj.animationQueue = [];
-
-		obj.set = function (options) {
-
-			//if duration is set, animate to the new state
-			if (options.duration > 0) {
-
-				let newParams = {
-					start: Date.now(),
-					expiration: Date.now() + options.duration,
-					endState: {}
-				}
-
-				utils.extend(options, newParams);
-
-				let translating = options.coords;
-				let rotating = options.rotation;
-				let scaling = options.scale || options.scaleX || options.scaleY || options.scaleZ;
-
-				if (rotating) {
-
-					let r = obj.rotation;
-					options.startRotation = [r.x, r.y, r.z];
-
-
-					options.endState.rotation = utils.types.rotation(options.rotation, options.startRotation);
-					options.rotationPerMs = options.endState.rotation
-						.map(function (angle, index) {
-							return (angle - options.startRotation[index]) / options.duration;
-						})
-				}
-
-				if (scaling) {
-					let s = obj.scale;
-					options.startScale = [s.x, s.y, s.z];
-					options.endState.scale = utils.types.scale(options.scale, options.startScale);
-
-					options.scalePerMs = options.endState.scale
-						.map(function (scale, index) {
-							return (scale - options.startScale[index]) / options.duration;
-						})
-				}
-
-				if (translating) options.pathCurve = new THREE.CatmullRomCurve3(utils.lnglatsToWorld([obj.coordinates, options.coords]));
-
-				let entry = {
-					type: 'set',
-					parameters: options
-				}
-
-				this.animationQueue
-					.push(entry);
-
-				tb.map.repaint = true;
-			}
-
-			//if no duration set, stop object's existing animations and go to that state immediately
-			else {
-				this.stop();
-				options.rotation = utils.radify(options.rotation);
-				this._setObject(options);
-			}
-
-			return this
-
-		};
-
-		//[jscastro] animation method, is set by update method
-		obj.animationMethod = null;
-
-		//[jscastro] stop animation and the queue
-		obj.stop = function (index) {
-			if (obj.mixer) {
-				obj.isPlaying = false;
-				cancelAnimationFrame(obj.animationMethod);
-			}
-			//TODO: if this is removed, it produces an error in 
-			this.animationQueue = [];
-			return this;
-		}
-
-		obj.followPath = function (options, cb) {
-
-			let entry = {
-				type: 'followPath',
-				parameters: utils._validate(options, defaults.followPath)
-			};
-
-			utils.extend(
-				entry.parameters,
-				{
-					pathCurve: new THREE.CatmullRomCurve3(
-						utils.lnglatsToWorld(options.path)
-					),
-					start: Date.now(),
-					expiration: Date.now() + entry.parameters.duration,
-					cb: cb
-				}
-			);
-
-			this.animationQueue
-				.push(entry);
-
-			tb.map.repaint = true;
-
-			return this;
-		};
-
-		obj._setObject = function (options) {
-
-			//default scale always
-			obj.setScale();
-
-			let p = options.position; // lnglat
-			let r = options.rotation; // radians
-			let s = options.scale; // custom scale
-			let w = options.worldCoordinates; //Vector3
-			let q = options.quaternion; // [axis, angle in rads]
-			let t = options.translate; // [jscastro] lnglat + height for 3D objects
-			let wt = options.worldTranslate; // [jscastro] Vector3 translation
-
-			if (p) {
-				this.coordinates = p;
-				let c = utils.projectToWorld(p);
-				this.position.copy(c)
-			}
-
-			if (t) {
-				this.coordinates = [this.coordinates[0] + t[0], this.coordinates[1] + t[1], this.coordinates[2] + t[2]];
-				let c = utils.projectToWorld(t);
-				this.position.copy(c)
-				//this.translateX(c.x);
-				//this.translateY(c.y);
-				//this.translateZ(c.z);
-				options.position = this.coordinates;
-			}
-
-			if (wt) {
-				this.translateX(wt.x);
-				this.translateY(wt.y);
-				this.translateZ(wt.z);
-				let p = utils.unprojectFromWorld(this.position);
-				this.coordinates = options.position = p;
-			}
-
-			if (r) {
-				this.rotation.set(r[0], r[1], r[2]);
-				options.rotation = new THREE.Vector3(r[0], r[1], r[2]);
-			}
-
-			if (s) {
-				this.scale.set(s[0], s[1], s[2]);
-				options.scale = this.scale;
-			}
-
-			if (q) {
-				this.quaternion.setFromAxisAngle(q[0], q[1]);
-				options.rotation = q[0].multiplyScalar(q[1]);
-			}
-
-			if (w) {
-				this.position.copy(w);
-				let p = utils.unprojectFromWorld(w);
-				this.coordinates = options.position = p;
-			} 
-
-			//Each time the object is positioned, project the floor and correct shadow plane
-			this.setBoundingBoxShadowFloor();
-			this.setReceiveShadowFloor();
-
-			this.updateMatrixWorld();
-			tb.map.repaint = true;
-
-			//const threeTarget = new THREE.EventDispatcher();
-			//threeTarget.dispatchEvent({ type: 'event', detail: { object: this, action: { position: options.position, rotation: options.rotation, scale: options.scale } } });
-			// fire the ObjectChanged event to notify UI object change
-			let e = { type: 'ObjectChanged', detail: { object: this, action: { position: options.position, rotation: options.rotation, scale: options.scale } } };
-			this.dispatchEvent(e);
-
-		};
-
-		//[jscastro] play default animation
-		obj.playDefault = function (options) {
-			if (obj.mixer && obj.hasDefaultAnimation) {
-
-				let newParams = {
-					start: Date.now(),
-					expiration: Date.now() + options.duration,
-					endState: {}
-				}
-
-				utils.extend(options, newParams);
-
-				obj.mixer.timeScale = options.speed || 1;
-
-				let entry = {
-					type: 'playDefault',
-					parameters: options
-				};
-
-				this.animationQueue
-					.push(entry);
-
-				tb.map.repaint = true
-				return this;
-			}
-		}
-
-		//[jscastro] play an animation, requires options.animation as an index, if not it will play the default one
-		obj.playAnimation = function (options) {
-			if (obj.mixer) {
-
-				if (options.animation) {
-					setAction(options.animation)
-				}
-				obj.playDefault(options);
-
-			}
-		}
-
-		//[jscastro] pause all actions animation
-		obj.pauseAllActions = function () {
-			if (obj.mixer) {
-				obj.actions.forEach(function (action) {
-					action.paused = true;
-				});
-			}
-		}
-
-		//[jscastro] unpause all actions
-		obj.unPauseAllActions = function () {
-			if (obj.mixer) {
-				obj.actions.forEach(function (action) {
-					action.paused = false;
-				});
-			}
-
-		}
-
-		//[jscastro] stop all actions
-		obj.deactivateAllActions = function () {
-			if (obj.mixer) {
-				obj.actions.forEach(function (action) {
-					action.stop();
-				});
-			}
-		}
-
-		//[jscastro] play all actions
-		obj.activateAllActions = function () {
-			if (obj.mixer) {
-				obj.actions.forEach(function (action) {
-					action.play();
-				});
-			}
-		}
-
-		//[jscastro] move the model action one tick just to avoid issues with initial position
-		obj.idle = function () {
-			if (obj.mixer) {
-				// Update the animation mixer and render this frame
-				obj.mixer.update(0.01);
-			}
-			tb.map.repaint = true;
-			return this;
-		}
-
-	},
-
-	update: function (now) {
-
-		if (this.previousFrameTime === undefined) this.previousFrameTime = now;
-
-		let dimensions = ['X', 'Y', 'Z'];
-
-		//[jscastro] when function expires this produces an error
-		if (!this.enrolledObjects) return false;
-
-		//iterate through objects in queue. count in reverse so we can cull objects without frame shifting
-		for (let a = this.enrolledObjects.length - 1; a >= 0; a--) {
-
-			let object = this.enrolledObjects[a];
-
-			if (!object.animationQueue || object.animationQueue.length === 0) continue;
-
-			//[jscastro] now multiple animations on a single object is possible
-			for (let i = object.animationQueue.length - 1; i >= 0; i--) {
-
-				//focus on first item in queue
-				let item = object.animationQueue[i];
-				if (!item) continue;
-				let options = item.parameters;
-
-				// if an animation is past its expiration date, cull it
-				if (!options.expiration) {
-					// console.log('culled')
-
-					object.animationQueue.splice(i, 1);
-
-					// set the start time of the next animation
-					if (object.animationQueue[i]) object.animationQueue[i].parameters.start = now;
-
-					return
-				}
-
-				//if finished, jump to end state and flag animation entry for removal next time around. Execute callback if there is one
-				let expiring = now >= options.expiration;
-
-				if (expiring) {
-					options.expiration = false;
-					if (item.type === 'playDefault') {
-						object.stop();
-					} else {
-						if (options.endState) object._setObject(options.endState);
-						if (typeof (options.cb) != 'undefined') options.cb();
-					}
-				}
-
-				else {
-
-					let timeProgress = (now - options.start) / options.duration;
-
-					if (item.type === 'set') {
-
-						let objectState = {};
-
-						if (options.pathCurve) objectState.worldCoordinates = options.pathCurve.getPoint(timeProgress);
-
-						if (options.rotationPerMs) {
-							objectState.rotation = options.startRotation.map(function (rad, index) {
-								return rad + options.rotationPerMs[index] * timeProgress * options.duration
-							})
-						}
-
-						if (options.scalePerMs) {
-							objectState.scale = options.startScale.map(function (scale, index) {
-								return scale + options.scalePerMs[index] * timeProgress * options.duration
-							})
-						}
-
-						object._setObject(objectState);
-					}
-
-					if (item.type === 'followPath') {
-
-						let position = options.pathCurve.getPointAt(timeProgress);
-						let objectState = { worldCoordinates: position };
-
-						// if we need to track heading
-						if (options.trackHeading) {
-
-							let tangent = options.pathCurve
-								.getTangentAt(timeProgress)
-								.normalize();
-
-							let axis = new THREE.Vector3(0, 0, 0);
-							let up = new THREE.Vector3(0, 1, 0);
-
-							axis
-								.crossVectors(up, tangent)
-								.normalize();
-
-							let radians = Math.acos(up.dot(tangent));
-
-							objectState.quaternion = [axis, radians];
-
-						}
-
-						object._setObject(objectState);
-
-					}
-
-					//[jscastro] play default animation
-					if (item.type === 'playDefault') {
-						object.activateAllActions();
-						object.isPlaying = true;
-						object.animationMethod = requestAnimationFrame(this.update);
-						object.mixer.update(object.clock.getDelta());
-						tb.map.repaint = true;
-					}
-
-				}
-			}
-
-		}
-
-		this.previousFrameTime = now;
-	}
-
-}
+ * AnimationManager – modernized and optimized version (without followPath sample caching)
+ */
+import { Clock, AnimationMixer, CatmullRomCurve3, Vector3 } from 'three';
+import * as utils from '../utils/utils.js';
 
 const defaults = {
-    followPath: {
-        path: null,
-        duration: 1000,
-        trackHeading: true
+  followPath: {
+    path: null,
+    duration: 1000,
+    trackHeading: true,
+  },
+};
+
+class AnimationManager {
+  constructor(map) {
+    this.map = map;
+    this.enrolledObjects = [];
+    this.previousFrameTime = undefined;
+    this.isAnimating = false;
+  }
+
+  unenroll(obj) {
+    const index = this.enrolledObjects.indexOf(obj);
+    if (index !== -1) {
+      this.enrolledObjects.splice(index, 1);
     }
+  }
+
+  enroll(obj) {
+    // Set up basic animation properties.
+    obj.clock = new Clock();
+    obj.hasDefaultAnimation = false;
+    obj.defaultAction = undefined;
+    obj.actions = [];
+    obj.mixer = undefined;
+
+    // If the object has animations, initialize the AnimationMixer and default action.
+    if (obj.animations && obj.animations.length > 0) {
+      obj.hasDefaultAnimation = true;
+      const daIndex =
+        obj.userData.defaultAnimation !== undefined
+          ? obj.userData.defaultAnimation
+          : 0;
+      obj.mixer = new AnimationMixer(obj);
+
+      // Closure for setting the proper animation action.
+      const setAction = (animationIndex) => {
+        obj.animations.forEach((animation, i) => {
+          if (animationIndex >= obj.animations.length) {
+            console.log(
+              `The animation index ${animationIndex} doesn't exist for this object`
+            );
+          }
+          const action = obj.mixer.clipAction(animation);
+          obj.actions.push(action);
+          if (animationIndex === i) {
+            obj.defaultAction = action;
+            action.setEffectiveWeight(1);
+          } else {
+            action.setEffectiveWeight(0);
+          }
+          action.play();
+        });
+      };
+
+      setAction(daIndex);
+
+      // Allow switching animations via options.
+      obj.playAnimation = (options) => {
+        if (obj.mixer) {
+          if (options.animation !== undefined) {
+            setAction(options.animation);
+          }
+          obj.playDefault(options);
+        }
+      };
+    }
+
+    // Create an "isPlaying" property with getter/setter.
+    let _isPlaying = false;
+    Object.defineProperty(obj, 'isPlaying', {
+      get: () => _isPlaying,
+      set: (value) => {
+        if (_isPlaying !== value) {
+          _isPlaying = value;
+          obj.dispatchEvent({ type: 'IsPlayingChanged', detail: obj });
+        }
+      },
+    });
+
+    // Add an internal animation queue.
+    obj.animationQueue = [];
+
+    // "set" method to animate object properties over a duration.
+    obj.set = function (options) {
+      if (options.duration > 0) {
+        const newParams = {
+          start: Date.now(),
+          expiration: Date.now() + options.duration,
+          endState: {},
+        };
+        utils.extend(options, newParams);
+
+        const translating = options.coords;
+        const rotating = options.rotation;
+        const scaling =
+          options.scale || options.scaleX || options.scaleY || options.scaleZ;
+
+        if (rotating) {
+          const { x, y, z } = obj.rotation;
+          options.startRotation = [x, y, z];
+          options.endState.rotation = utils.types.rotation(
+            options.rotation,
+            options.startRotation
+          );
+          options.rotationPerMs = options.endState.rotation.map(
+            (angle, index) =>
+              (angle - options.startRotation[index]) / options.duration
+          );
+        }
+
+        if (scaling) {
+          const { x, y, z } = obj.scale;
+          options.startScale = [x, y, z];
+          options.endState.scale = utils.types.scale(options.scale, options.startScale);
+          options.scalePerMs = options.endState.scale.map(
+            (scale, index) =>
+              (scale - options.startScale[index]) / options.duration
+          );
+        }
+
+        if (translating) {
+          options.pathCurve = new CatmullRomCurve3(
+            utils.lnglatsToWorld([obj.coordinates, options.coords])
+          );
+        }
+
+        const entry = { type: 'set', parameters: options };
+        this.animationQueue.push(entry);
+        tb.map.repaint = true;
+      } else {
+        this.stop();
+        options.rotation = utils.radify(options.rotation);
+        this._setObject(options);
+      }
+      return this;
+    };
+
+    // Placeholder for animation request IDs.
+    obj.animationMethod = null;
+
+    // Stop animation: cancel requestAnimationFrame and clear the queue.
+    obj.stop = function () {
+      if (obj.mixer) {
+        obj.isPlaying = false;
+        cancelAnimationFrame(obj.animationMethod);
+      }
+      this.animationQueue = [];
+      return this;
+    };
+
+    // "followPath" method (without sample caching).
+    obj.followPath = function (options, cb) {
+      const entry = {
+        type: 'followPath',
+        parameters: utils._validate(options, defaults.followPath),
+      };
+
+      // Create the curve from lng/lat coordinates.
+      entry.parameters.pathCurve = new CatmullRomCurve3(
+        utils.lnglatsToWorld(options.path)
+      );
+
+      Object.assign(entry.parameters, {
+        start: Date.now(),
+        expiration: Date.now() + entry.parameters.duration,
+        cb: cb,
+      });
+
+      this.animationQueue.push(entry);
+      tb.map.repaint = true;
+      return this;
+    };
+
+    // Immediately set the object state.
+    obj._setObject = function (options) {
+      // Always update scale first.
+      obj.setScale();
+
+      const { position: p, rotation: r, scale: s, worldCoordinates: w, quaternion: q, translate: t, worldTranslate: wt } = options;
+
+      if (p) {
+        this.coordinates = p;
+        const c = utils.projectToWorld(p);
+        this.position.copy(c);
+      }
+
+      if (t) {
+        this.coordinates = [
+          this.coordinates[0] + t[0],
+          this.coordinates[1] + t[1],
+          this.coordinates[2] + t[2],
+        ];
+        const c = utils.projectToWorld(t);
+        this.position.copy(c);
+        options.position = this.coordinates;
+      }
+
+      if (wt) {
+        this.translateX(wt.x);
+        this.translateY(wt.y);
+        this.translateZ(wt.z);
+        const p = utils.unprojectFromWorld(this.position);
+        this.coordinates = options.position = p;
+      }
+
+      if (r) {
+        this.rotation.set(r[0], r[1], r[2]);
+        options.rotation = new Vector3(r[0], r[1], r[2]);
+      }
+
+      if (s) {
+        this.scale.set(s[0], s[1], s[2]);
+        options.scale = this.scale;
+      }
+
+      if (q) {
+        this.quaternion.setFromAxisAngle(q[0], q[1]);
+        options.rotation = q[0].multiplyScalar(q[1]);
+      }
+
+      if (w) {
+        this.position.copy(w);
+        const p = utils.unprojectFromWorld(w);
+        this.coordinates = options.position = p;
+      }
+
+      // Update shadow and bounding properties.
+      this.setBoundingBoxShadowFloor();
+      this.setReceiveShadowFloor();
+
+      this.updateMatrixWorld();
+      tb.map.repaint = true;
+
+      // Notify listeners that the object has changed.
+      this.dispatchEvent({
+        type: 'ObjectChanged',
+        detail: {
+          object: this,
+          action: { position: options.position, rotation: options.rotation, scale: options.scale },
+        },
+      });
+    };
+
+    // Play the default animation.
+    obj.playDefault = function (options) {
+      if (obj.mixer && obj.hasDefaultAnimation) {
+        const newParams = {
+          start: Date.now(),
+          expiration: Date.now() + options.duration,
+          endState: {},
+        };
+        utils.extend(options, newParams);
+        obj.mixer.timeScale = options.speed || 1;
+        const entry = {
+          type: 'playDefault',
+          parameters: options,
+        };
+        this.animationQueue.push(entry);
+        tb.map.repaint = true;
+        return this;
+      }
+    };
+
+    // Pause/unpause and activate/deactivate all actions.
+    obj.pauseAllActions = function () {
+      if (obj.mixer) {
+        obj.actions.forEach((action) => (action.paused = true));
+      }
+    };
+
+    obj.unPauseAllActions = function () {
+      if (obj.mixer) {
+        obj.actions.forEach((action) => (action.paused = false));
+      }
+    };
+
+    obj.deactivateAllActions = function () {
+      if (obj.mixer) {
+        obj.actions.forEach((action) => action.stop());
+      }
+    };
+
+    obj.activateAllActions = function () {
+      if (obj.mixer) {
+        obj.actions.forEach((action) => action.play());
+      }
+    };
+
+    // A small tick to ensure proper initialization.
+    obj.idle = function () {
+      if (obj.mixer) {
+        obj.mixer.update(0.01);
+      }
+      tb.map.repaint = true;
+      return this;
+    };
+
+    this.enrolledObjects.push(obj);
+  }
+
+  update(now) {
+    // Cache current time once per update.
+    const currentTime = Date.now();
+    let repaintNeeded = false;
+
+    // Pre-create temporary vectors for tangent calculations.
+    const up = new Vector3(0, 1, 0);
+    const tempAxis = new Vector3();
+
+    // Loop over each enrolled object.
+    for (let a = this.enrolledObjects.length - 1; a >= 0; a--) {
+      const object = this.enrolledObjects[a];
+      if (!object.animationQueue || object.animationQueue.length === 0) continue;
+
+      // Process each animation entry in the object's queue.
+      for (let i = object.animationQueue.length - 1; i >= 0; i--) {
+        const item = object.animationQueue[i];
+        if (!item) continue;
+        const options = item.parameters;
+
+        // Remove items with no expiration.
+        if (!options.expiration) {
+          object.animationQueue.splice(i, 1);
+          if (object.animationQueue[i]) {
+            object.animationQueue[i].parameters.start = currentTime;
+          }
+          continue;
+        }
+
+        const expiring = currentTime >= options.expiration;
+        if (expiring) {
+          options.expiration = false;
+          if (item.type === 'playDefault') {
+            object.stop();
+          } else {
+            if (options.endState) object._setObject(options.endState);
+            if (typeof options.cb !== 'undefined') options.cb();
+          }
+        } else {
+          const timeProgress = (currentTime - options.start) / options.duration;
+
+          if (item.type === 'set') {
+            const objectState = {};
+            if (options.pathCurve) {
+              objectState.worldCoordinates = options.pathCurve.getPoint(timeProgress);
+            }
+            if (options.rotationPerMs) {
+              objectState.rotation = options.startRotation.map(
+                (rad, index) =>
+                  rad + options.rotationPerMs[index] * timeProgress * options.duration
+              );
+            }
+            if (options.scalePerMs) {
+              objectState.scale = options.startScale.map(
+                (scale, index) =>
+                  scale + options.scalePerMs[index] * timeProgress * options.duration
+              );
+            }
+            object._setObject(objectState);
+          }
+
+          if (item.type === 'followPath') {
+            const objectState = {};
+            objectState.worldCoordinates = options.pathCurve.getPointAt(timeProgress);
+            if (options.trackHeading) {
+              // Calculate heading using temporary vectors.
+              const tangent = options.pathCurve.getTangentAt(timeProgress).normalize();
+              tempAxis.crossVectors(up, tangent).normalize();
+              const radians = Math.acos(up.dot(tangent));
+              objectState.quaternion = [tempAxis.clone(), radians];
+            }
+            object._setObject(objectState);
+          }
+
+          if (item.type === 'playDefault') {
+            object.activateAllActions();
+            object.isPlaying = true;
+            // Centralize scheduling of the update loop.
+            if (!this.isAnimating) {
+              this.isAnimating = true;
+              requestAnimationFrame(this.update.bind(this));
+            }
+            object.mixer.update(object.clock.getDelta());
+          }
+          repaintNeeded = true;
+        }
+      }
+    }
+
+    if (repaintNeeded) {
+      tb.map.repaint = true;
+    }
+    this.previousFrameTime = currentTime;
+  }
 }
-module.exports = exports = AnimationManager;
+
+export default AnimationManager;

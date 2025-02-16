@@ -1,13 +1,51 @@
-const THREE = require('../../three.js');
+import {
+  Loader,
+  LoaderUtils,
+  FileLoader,
+  MathUtils,
+  Vector3,
+  Quaternion,
+  VectorKeyframeTrack,
+  QuaternionKeyframeTrack,
+  AnimationClip,
+  Matrix4,
+  MeshPhongMaterial,
+  MeshLambertMaterial,
+  MeshBasicMaterial,
+  RepeatWrapping,
+  ClampToEdgeWrapping,
+  DoubleSide,
+  PerspectiveCamera,
+  OrthographicCamera,
+  Color,
+  DirectionalLight,
+  PointLight,
+  SpotLight,
+  AmbientLight,
+  BufferGeometry,
+  Float32BufferAttribute,
+  Skeleton,
+  Bone,
+  Group,
+  LineBasicMaterial,
+  LineSegments,
+  Line,
+  SkinnedMesh,
+  Mesh,
+  Scene,
+  Euler,
+} from 'three';
+
+import { TextureLoader } from 'three/src/loaders/TextureLoader.js';
+import { TGALoader } from 'three/examples/jsm/Addons.js';
+import { ColladaLoader as _ColladaLoader } from 'three/examples/jsm/loaders/ColladaLoader.js';
 
 /**
  * @author mrdoob / http://mrdoob.com/
  * @author Mugen87 / https://github.com/Mugen87
  */
 
-(function () {
-
-	class ColladaLoader extends THREE.Loader {
+	class ColladaLoader extends Loader {
 
 		constructor(manager) {
 
@@ -18,8 +56,8 @@ const THREE = require('../../three.js');
 		load(url, onLoad, onProgress, onError) {
 
 			const scope = this;
-			const path = scope.path === '' ? THREE.LoaderUtils.extractUrlBase(url) : scope.path;
-			const loader = new THREE.FileLoader(scope.manager);
+			const path = scope.path === '' ? LoaderUtils.extractUrlBase(url) : scope.path;
+			const loader = new FileLoader(scope.manager);
 			loader.setPath(scope.path);
 			loader.setRequestHeader(scope.requestHeader);
 			loader.setWithCredentials(scope.withCredentials);
@@ -257,7 +295,7 @@ const THREE = require('../../three.js');
 				if (hasChildren === false) {
 
 					// since 'id' attributes can be optional, it's necessary to generate a UUID for unqiue assignment
-					library.animations[xml.getAttribute('id') || THREE.MathUtils.generateUUID()] = data;
+					library.animations[xml.getAttribute('id') || MathUtils.generateUUID()] = data;
 
 				}
 
@@ -463,9 +501,9 @@ const THREE = require('../../three.js');
 
 			}
 
-			const position = new THREE.Vector3();
-			const scale = new THREE.Vector3();
-			const quaternion = new THREE.Quaternion();
+			const position = new Vector3();
+			const scale = new Vector3();
+			const quaternion = new Quaternion();
 
 			function createKeyframeTracks(animation, tracks) {
 
@@ -490,9 +528,9 @@ const THREE = require('../../three.js');
 
 				}
 
-				if (positionData.length > 0) tracks.push(new THREE.VectorKeyframeTrack(name + '.position', times, positionData));
-				if (quaternionData.length > 0) tracks.push(new THREE.QuaternionKeyframeTrack(name + '.quaternion', times, quaternionData));
-				if (scaleData.length > 0) tracks.push(new THREE.VectorKeyframeTrack(name + '.scale', times, scaleData));
+				if (positionData.length > 0) tracks.push(new VectorKeyframeTrack(name + '.position', times, positionData));
+				if (quaternionData.length > 0) tracks.push(new QuaternionKeyframeTrack(name + '.quaternion', times, quaternionData));
+				if (scaleData.length > 0) tracks.push(new VectorKeyframeTrack(name + '.scale', times, scaleData));
 				return tracks;
 
 			}
@@ -662,7 +700,7 @@ const THREE = require('../../three.js');
 
 				}
 
-				return new THREE.AnimationClip(name, duration, tracks);
+				return new AnimationClip(name, duration, tracks);
 
 			}
 
@@ -901,11 +939,11 @@ const THREE = require('../../three.js');
 
 				if (data.bindShapeMatrix) {
 
-					build.bindMatrix = new THREE.Matrix4().fromArray(data.bindShapeMatrix).transpose();
+					build.bindMatrix = new Matrix4().fromArray(data.bindShapeMatrix).transpose();
 
 				} else {
 
-					build.bindMatrix = new THREE.Matrix4().identity();
+					build.bindMatrix = new Matrix4().identity();
 
 				} // process bones and inverse bind matrix data
 
@@ -913,7 +951,7 @@ const THREE = require('../../three.js');
 				for (i = 0, l = jointSource.array.length; i < l; i++) {
 
 					const name = jointSource.array[i];
-					const boneInverse = new THREE.Matrix4().fromArray(inverseSource.array, i * inverseSource.stride).transpose();
+					const boneInverse = new Matrix4().fromArray(inverseSource.array, i * inverseSource.stride).transpose();
 					build.joints.push({
 						name: name,
 						boneInverse: boneInverse
@@ -1397,15 +1435,15 @@ const THREE = require('../../three.js');
 
 					case 'phong':
 					case 'blinn':
-						material = new THREE.MeshPhongMaterial();
+						material = new MeshPhongMaterial();
 						break;
 
 					case 'lambert':
-						material = new THREE.MeshLambertMaterial();
+						material = new MeshLambertMaterial();
 						break;
 
 					default:
-						material = new THREE.MeshBasicMaterial();
+						material = new MeshBasicMaterial();
 						break;
 
 				}
@@ -1442,15 +1480,15 @@ const THREE = require('../../three.js');
 							if (extra !== undefined && extra.technique !== undefined && isEmpty(extra.technique) === false) {
 
 								const technique = extra.technique;
-								texture.wrapS = technique.wrapU ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
-								texture.wrapT = technique.wrapV ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
+								texture.wrapS = technique.wrapU ? RepeatWrapping : ClampToEdgeWrapping;
+								texture.wrapT = technique.wrapV ? RepeatWrapping : ClampToEdgeWrapping;
 								texture.offset.set(technique.offsetU || 0, technique.offsetV || 0);
 								texture.repeat.set(technique.repeatU || 1, technique.repeatV || 1);
 
 							} else {
 
-								texture.wrapS = THREE.RepeatWrapping;
-								texture.wrapT = THREE.RepeatWrapping;
+								texture.wrapS = RepeatWrapping;
+								texture.wrapT = RepeatWrapping;
 
 							}
 
@@ -1579,7 +1617,7 @@ const THREE = require('../../three.js');
 
 				if (extra !== undefined && extra.technique !== undefined && extra.technique.double_sided === 1) {
 
-					material.side = THREE.DoubleSide;
+					material.side = DoubleSide;
 
 				}
 
@@ -1697,7 +1735,7 @@ const THREE = require('../../three.js');
 				switch (data.optics.technique) {
 
 					case 'perspective':
-						camera = new THREE.PerspectiveCamera(data.optics.parameters.yfov, data.optics.parameters.aspect_ratio, data.optics.parameters.znear, data.optics.parameters.zfar);
+						camera = new PerspectiveCamera(data.optics.parameters.yfov, data.optics.parameters.aspect_ratio, data.optics.parameters.znear, data.optics.parameters.zfar);
 						break;
 
 					case 'orthographic':
@@ -1708,12 +1746,12 @@ const THREE = require('../../three.js');
 						ymag = ymag === undefined ? xmag / aspectRatio : ymag;
 						xmag *= 0.5;
 						ymag *= 0.5;
-						camera = new THREE.OrthographicCamera(- xmag, xmag, ymag, - ymag, // left, right, top, bottom
+						camera = new OrthographicCamera(- xmag, xmag, ymag, - ymag, // left, right, top, bottom
 							data.optics.parameters.znear, data.optics.parameters.zfar);
 						break;
 
 					default:
-						camera = new THREE.PerspectiveCamera();
+						camera = new PerspectiveCamera();
 						break;
 
 				}
@@ -1801,7 +1839,7 @@ const THREE = require('../../three.js');
 
 						case 'color':
 							const array = parseFloats(child.textContent);
-							data.color = new THREE.Color().fromArray(array);
+							data.color = new Color().fromArray(array);
 							break;
 
 						case 'falloff_angle':
@@ -1828,19 +1866,19 @@ const THREE = require('../../three.js');
 				switch (data.technique) {
 
 					case 'directional':
-						light = new THREE.DirectionalLight();
+						light = new DirectionalLight();
 						break;
 
 					case 'point':
-						light = new THREE.PointLight();
+						light = new PointLight();
 						break;
 
 					case 'spot':
-						light = new THREE.SpotLight();
+						light = new SpotLight();
 						break;
 
 					case 'ambient':
-						light = new THREE.AmbientLight();
+						light = new AmbientLight();
 						break;
 
 				}
@@ -2119,7 +2157,7 @@ const THREE = require('../../three.js');
 					array: [],
 					stride: 4
 				};
-				const geometry = new THREE.BufferGeometry();
+				const geometry = new BufferGeometry();
 				const materialKeys = [];
 				let start = 0;
 
@@ -2281,13 +2319,13 @@ const THREE = require('../../three.js');
 				} // build geometry
 
 
-				if (position.array.length > 0) geometry.setAttribute('position', new THREE.Float32BufferAttribute(position.array, position.stride));
-				if (normal.array.length > 0) geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normal.array, normal.stride));
-				if (color.array.length > 0) geometry.setAttribute('color', new THREE.Float32BufferAttribute(color.array, color.stride));
-				if (uv.array.length > 0) geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv.array, uv.stride));
-				if (uv2.array.length > 0) geometry.setAttribute('uv2', new THREE.Float32BufferAttribute(uv2.array, uv2.stride));
-				if (skinIndex.array.length > 0) geometry.setAttribute('skinIndex', new THREE.Float32BufferAttribute(skinIndex.array, skinIndex.stride));
-				if (skinWeight.array.length > 0) geometry.setAttribute('skinWeight', new THREE.Float32BufferAttribute(skinWeight.array, skinWeight.stride));
+				if (position.array.length > 0) geometry.setAttribute('position', new Float32BufferAttribute(position.array, position.stride));
+				if (normal.array.length > 0) geometry.setAttribute('normal', new Float32BufferAttribute(normal.array, normal.stride));
+				if (color.array.length > 0) geometry.setAttribute('color', new Float32BufferAttribute(color.array, color.stride));
+				if (uv.array.length > 0) geometry.setAttribute('uv', new Float32BufferAttribute(uv.array, uv.stride));
+				if (uv2.array.length > 0) geometry.setAttribute('uv2', new Float32BufferAttribute(uv2.array, uv2.stride));
+				if (skinIndex.array.length > 0) geometry.setAttribute('skinIndex', new Float32BufferAttribute(skinIndex.array, skinIndex.stride));
+				if (skinWeight.array.length > 0) geometry.setAttribute('skinWeight', new Float32BufferAttribute(skinWeight.array, skinWeight.stride));
 				build.data = geometry;
 				build.type = primitives[0].type;
 				build.materialKeys = materialKeys;
@@ -2477,7 +2515,7 @@ const THREE = require('../../three.js');
 				const data = {
 					sid: xml.getAttribute('sid'),
 					name: xml.getAttribute('name') || '',
-					axis: new THREE.Vector3(),
+					axis: new Vector3(),
 					limits: {
 						min: 0,
 						max: 0
@@ -2601,19 +2639,19 @@ const THREE = require('../../three.js');
 				switch (data.type) {
 
 					case 'matrix':
-						data.obj = new THREE.Matrix4();
+						data.obj = new Matrix4();
 						data.obj.fromArray(array).transpose();
 						break;
 
 					case 'translate':
-						data.obj = new THREE.Vector3();
+						data.obj = new Vector3();
 						data.obj.fromArray(array);
 						break;
 
 					case 'rotate':
-						data.obj = new THREE.Vector3();
+						data.obj = new Vector3();
 						data.obj.fromArray(array);
-						data.angle = THREE.MathUtils.degToRad(array[3]);
+						data.angle = MathUtils.degToRad(array[3]);
 						break;
 
 				}
@@ -2809,7 +2847,7 @@ const THREE = require('../../three.js');
 
 				}
 
-				const m0 = new THREE.Matrix4();
+				const m0 = new Matrix4();
 				kinematics = {
 					joints: kinematicsModel && kinematicsModel.joints,
 					getJointValue: function (jointIndex) {
@@ -2859,7 +2897,7 @@ const THREE = require('../../three.js');
 										switch (joint.type) {
 
 											case 'revolute':
-												matrix.multiply(m0.makeRotationAxis(axis, THREE.MathUtils.degToRad(value)));
+												matrix.multiply(m0.makeRotationAxis(axis, MathUtils.degToRad(value)));
 												break;
 
 											case 'prismatic':
@@ -2930,7 +2968,7 @@ const THREE = require('../../three.js');
 
 						case 'matrix':
 							array = parseFloats(child.textContent);
-							const matrix = new THREE.Matrix4().fromArray(array).transpose();
+							const matrix = new Matrix4().fromArray(array).transpose();
 							transforms.push({
 								sid: child.getAttribute('sid'),
 								type: child.nodeName,
@@ -2941,7 +2979,7 @@ const THREE = require('../../three.js');
 						case 'translate':
 						case 'scale':
 							array = parseFloats(child.textContent);
-							vector = new THREE.Vector3().fromArray(array);
+							vector = new Vector3().fromArray(array);
 							transforms.push({
 								sid: child.getAttribute('sid'),
 								type: child.nodeName,
@@ -2951,8 +2989,8 @@ const THREE = require('../../three.js');
 
 						case 'rotate':
 							array = parseFloats(child.textContent);
-							vector = new THREE.Vector3().fromArray(array);
-							const angle = THREE.MathUtils.degToRad(array[3]);
+							vector = new Vector3().fromArray(array);
+							const angle = MathUtils.degToRad(array[3]);
 							transforms.push({
 								sid: child.getAttribute('sid'),
 								type: child.nodeName,
@@ -2988,8 +3026,8 @@ const THREE = require('../../three.js');
 
 			}
 
-			const matrix = new THREE.Matrix4();
-			const vector = new THREE.Vector3();
+			const matrix = new Matrix4();
+			const vector = new Vector3();
 
 			function parseNode(xml) {
 
@@ -2998,7 +3036,7 @@ const THREE = require('../../three.js');
 					type: xml.getAttribute('type'),
 					id: xml.getAttribute('id'),
 					sid: xml.getAttribute('sid'),
-					matrix: new THREE.Matrix4(),
+					matrix: new Matrix4(),
 					nodes: [],
 					instanceCameras: [],
 					instanceControllers: [],
@@ -3056,7 +3094,7 @@ const THREE = require('../../three.js');
 
 						case 'rotate':
 							array = parseFloats(child.textContent);
-							const angle = THREE.MathUtils.degToRad(array[3]);
+							const angle = MathUtils.degToRad(array[3]);
 							data.matrix.multiply(matrix.makeRotationAxis(vector.fromArray(array), angle));
 							data.transforms[child.getAttribute('sid')] = child.nodeName;
 							break;
@@ -3223,7 +3261,7 @@ const THREE = require('../../three.js');
 
 				}
 
-				return new THREE.Skeleton(bones, boneInverses);
+				return new Skeleton(bones, boneInverses);
 
 			}
 
@@ -3256,7 +3294,7 @@ const THREE = require('../../three.js');
 							// for the respective bone. This bone won't affect any vertices, because there are no skin indices
 							// and weights defined for it. But we still have to add the bone to the sorted bone list in order to
 							// ensure a correct animation of the model.
-							boneInverse = new THREE.Matrix4();
+							boneInverse = new Matrix4();
 
 						}
 
@@ -3376,7 +3414,7 @@ const THREE = require('../../three.js');
 
 				} else {
 
-					object = type === 'JOINT' ? new THREE.Bone() : new THREE.Group();
+					object = type === 'JOINT' ? new Bone() : new Group();
 
 					for (let i = 0; i < objects.length; i++) {
 
@@ -3393,7 +3431,7 @@ const THREE = require('../../three.js');
 
 			}
 
-			const fallbackMaterial = new THREE.MeshBasicMaterial({
+			const fallbackMaterial = new MeshBasicMaterial({
 				color: 0xff00ff
 			});
 
@@ -3435,11 +3473,11 @@ const THREE = require('../../three.js');
 
 						if (type === 'lines' || type === 'linestrips') {
 
-							materials.push(new THREE.LineBasicMaterial());
+							materials.push(new LineBasicMaterial());
 
 						} else {
 
-							materials.push(new THREE.MeshPhongMaterial());
+							materials.push(new MeshPhongMaterial());
 
 						}
 
@@ -3455,22 +3493,22 @@ const THREE = require('../../three.js');
 					switch (type) {
 
 						case 'lines':
-							object = new THREE.LineSegments(geometry.data, material);
+							object = new LineSegments(geometry.data, material);
 							break;
 
 						case 'linestrips':
-							object = new THREE.Line(geometry.data, material);
+							object = new Line(geometry.data, material);
 							break;
 
 						case 'triangles':
 						case 'polylist':
 							if (skinning) {
 
-								object = new THREE.SkinnedMesh(geometry.data, material);
+								object = new SkinnedMesh(geometry.data, material);
 
 							} else {
 
-								object = new THREE.Mesh(geometry.data, material);
+								object = new Mesh(geometry.data, material);
 
 							}
 
@@ -3520,7 +3558,7 @@ const THREE = require('../../three.js');
 
 			function buildVisualScene(data) {
 
-				const group = new THREE.Group();
+				const group = new Group();
 				group.name = data.name;
 				const children = data.children;
 
@@ -3578,7 +3616,7 @@ const THREE = require('../../three.js');
 
 						}
 
-						animations.push(new THREE.AnimationClip('default', - 1, tracks));
+						animations.push(new AnimationClip('default', - 1, tracks));
 
 					}
 
@@ -3625,7 +3663,7 @@ const THREE = require('../../three.js');
 			if (text.length === 0) {
 
 				return {
-					scene: new THREE.Scene()
+					scene: new Scene()
 				};
 
 			}
@@ -3659,13 +3697,13 @@ const THREE = require('../../three.js');
 			const version = collada.getAttribute('version');
 			console.log('THREE.ColladaLoader: File version', version);
 			const asset = parseAsset(getElementsByTagName(collada, 'asset')[0]);
-			const textureLoader = new THREE.TextureLoader(this.manager);
+			const textureLoader = new TextureLoader(this.manager);
 			textureLoader.setPath(this.resourcePath || path).setCrossOrigin(this.crossOrigin);
 			let tgaLoader;
 
-			if (THREE.TGALoader) {
+			if (TGALoader) {
 
-				tgaLoader = new THREE.TGALoader(this.manager);
+				tgaLoader = new TGALoader(this.manager);
 				tgaLoader.setPath(this.resourcePath || path);
 
 			} //
@@ -3722,7 +3760,7 @@ const THREE = require('../../three.js');
 
 			if (asset.upAxis === 'Z_UP') {
 
-				scene.quaternion.setFromEuler(new THREE.Euler(- Math.PI / 2, 0, 0));
+				scene.quaternion.setFromEuler(new Euler(- Math.PI / 2, 0, 0));
 
 			}
 
@@ -3744,8 +3782,4 @@ const THREE = require('../../three.js');
 
 	}
 
-	THREE.ColladaLoader = ColladaLoader;
-
-})();
-
-module.exports = exports = THREE.ColladaLoader;
+export default ColladaLoader;

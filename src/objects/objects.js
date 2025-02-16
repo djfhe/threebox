@@ -2,11 +2,10 @@
  * @author peterqliu / https://github.com/peterqliu
  * @author jscastro / https://github.com/jscastro76
  */
-const utils = require("../utils/utils.js");
-const material = require("../utils/material.js");
-const THREE = require('../three.js');
-const AnimationManager = require("../animation/AnimationManager.js");
-const CSS2D = require("./CSS2DRenderer.js");
+import * as utils from "../utils/utils.js";
+import { BufferGeometry, BufferAttribute, LineBasicMaterial, Line, Vector3, Group, Box3Helper, PlaneGeometry, ShadowMaterial, Mesh, MeshStandardMaterial, Box3, Matrix4, Color, MeshPhongMaterial, DoubleSide } from 'three';
+import AnimationManager from "../animation/AnimationManager.js";
+import * as CSS2D from "./CSS2DRenderer.js";
 
 function Objects(){
 
@@ -27,12 +26,12 @@ Objects.prototype = {
 		var flattenedArray = utils.flattenVectors(normalized.vertices);
 
 		var positions = new Float32Array(flattenedArray); // 3 vertices per point
-		var geometry = new THREE.BufferGeometry();
-		geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+		var geometry = new BufferGeometry();
+		geometry.setAttribute('position', new BufferAttribute(positions, 3));
 
 		// material
-		var material = new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: 21 });
-		var line = new THREE.Line(geometry, material);
+		var material = new LineBasicMaterial({ color: 0xff0000, linewidth: 21 });
+		var line = new Line(geometry, material);
 
 		line.options = options || {};
 		line.position.copy(normalized.position)
@@ -160,11 +159,11 @@ Objects.prototype = {
 
 				let bb = obj.modelBox();
 
-				let point = new THREE.Vector3(bb.max.x, bb.max.y, bb.min.z);
+				let point = new Vector3(bb.max.x, bb.max.y, bb.min.z);
 				//apply Axis rotation on angle
-				if (xyz.x != 0) _applyAxisAngle(obj, point, new THREE.Vector3(0, 0, 1), xyz.x);
-				if (xyz.y != 0) _applyAxisAngle(obj, point, new THREE.Vector3(0, 0, 1), xyz.y);
-				if (xyz.z != 0) _applyAxisAngle(obj, point, new THREE.Vector3(0, 0, 1), xyz.z);
+				if (xyz.x != 0) _applyAxisAngle(obj, point, new Vector3(0, 0, 1), xyz.x);
+				if (xyz.y != 0) _applyAxisAngle(obj, point, new Vector3(0, 0, 1), xyz.y);
+				if (xyz.z != 0) _applyAxisAngle(obj, point, new Vector3(0, 0, 1), xyz.z);
 			}
 
 			//[jscastro] Auxiliar method to rotate an object on an axis
@@ -213,10 +212,10 @@ Objects.prototype = {
 				//let's create 2 wireframes, one for the object and one to project on the floor position
 				let bb = obj.box3();
 				//create the group to return
-				let boxGroup = new THREE.Group();
+				let boxGroup = new Group();
 				boxGroup.name = "boxGroup";
 				boxGroup.updateMatrixWorld(true);
-				let boxModel = new THREE.Box3Helper(bb, Objects.prototype._defaults.colors.yellow);
+				let boxModel = new Box3Helper(bb, Objects.prototype._defaults.colors.yellow);
 				boxModel.name = "boxModel";
 				boxGroup.add(boxModel);
 				boxModel.layers.disable(0); // it makes the object invisible for the raycaster
@@ -226,7 +225,7 @@ Objects.prototype = {
 				let bb2 = bb.clone();
 				//we make the second box flat and at the floor height level
 				bb2.max.z = bb2.min.z;
-				let boxShadow = new THREE.Box3Helper(bb2, Objects.prototype._defaults.colors.black);
+				let boxShadow = new Box3Helper(bb2, Objects.prototype._defaults.colors.black);
 				boxShadow.name = "boxShadow";
 
 				boxGroup.add(boxShadow);
@@ -252,7 +251,7 @@ Objects.prototype = {
 			obj.setAnchor = function (anchor) {
 				const b = obj.box3();
 				//const size = b.getSize(new THREE.Vector3());
-				const c = b.getCenter(new THREE.Vector3());
+				const c = b.getCenter(new Vector3());
 				obj.none = { x: 0, y: 0, z: 0 };
 				obj.center = { x: c.x, y: c.y, z: b.min.z };
 				obj.bottom = { x: c.x, y: b.max.y, z: b.min.z };
@@ -429,7 +428,7 @@ Objects.prototype = {
 			obj.addCSS2D = function (element, objName, center = obj.anchor, height = 1) {
 				if (element) {
 					const box = obj.box3();
-					const size = box.getSize(new THREE.Vector3());
+					const size = box.getSize(new Vector3());
 					let bottomLeft = { x: box.max.x, y: box.max.y, z: box.min.z };
 					obj.removeCSS2D(objName);
 					let c = new CSS2D.CSS2DObject(element);
@@ -471,11 +470,11 @@ Objects.prototype = {
 						const s = obj.modelSize;
 						const sz = [s.x, s.y, s.z, obj.modelHeight];
 						const pSize = Math.max(...sz) * 10;
-						const pGeo = new THREE.PlaneBufferGeometry(pSize, pSize);
-						const pMat = new THREE.ShadowMaterial();
+						const pGeo = new PlaneGeometry(pSize, pSize);
+						const pMat = new ShadowMaterial();
 						//const pMat = new THREE.MeshStandardMaterial({ color: 0x660000 });
 						pMat.opacity = 0.5;
-						let p = new THREE.Mesh(pGeo, pMat);
+						let p = new Mesh(pGeo, pMat);
 						p.name = shadowPlane;
 						p.layers.enable(1); p.layers.disable(0); // it makes the object invisible for the raycaster
 						p.receiveShadow = value;
@@ -483,7 +482,7 @@ Objects.prototype = {
 					} else {
 						// or we remove it 
 						obj.traverse(function (c) {
-							if (c.isMesh && c.material instanceof THREE.ShadowMaterial)
+							if (c.isMesh && c.material instanceof ShadowMaterial)
 								obj.remove(c);
 						});
 
@@ -579,7 +578,7 @@ Objects.prototype = {
 							let m = materials[0];
 							if (value) {
 								c.userData.materials = m;
-								c.material = new THREE.MeshStandardMaterial();
+								c.material = new MeshStandardMaterial();
 								c.material.color.setHex(value);
 							} else {
 								c.material.dispose();
@@ -691,17 +690,17 @@ Objects.prototype = {
 					let dup = obj.clone(true);
 					let model = obj.model.clone();
 					//get the size of the model because the object is translated and has boundingBoxShadow
-					bounds = new THREE.Box3().setFromObject(model);
+					bounds = new Box3().setFromObject(model);
 					//if the object has parent it's already in the added to world so it's scaled and it could be rotated
 					if (obj.parent) {
 						//first, we return the object to it's original position of rotation, extract rotation and apply inversed
-						let rm = new THREE.Matrix4();
-						let rmi = new THREE.Matrix4();
+						let rm = new Matrix4();
+						let rmi = new Matrix4();
 						obj.matrix.extractRotation(rm);
 						rmi.copy(rm).invert();
 						dup.setRotationFromMatrix(rmi);
 						//now the object inside will give us a NAABB Non-Axes Aligned Bounding Box 
-						bounds = new THREE.Box3().setFromObject(model);
+						bounds = new Box3().setFromObject(model);
 					}
 				}
 				return bounds;
@@ -713,7 +712,7 @@ Objects.prototype = {
 			}
 
 			obj.getSize = function () {
-				return obj.box3().getSize(new THREE.Vector3(0, 0, 0));
+				return obj.box3().getSize(new Vector3(0, 0, 0));
 			}
 
 			//[jscastro]
@@ -937,11 +936,11 @@ Objects.prototype = {
 	},
 
 	_makeGroup: function (obj, options) {
-		let projScaleGroup = new THREE.Group();
+		let projScaleGroup = new Group();
 		projScaleGroup.name = "scaleGroup";
 		projScaleGroup.add(obj)
 
-		var geoGroup = new THREE.Group();
+		var geoGroup = new Group();
 		geoGroup.userData = options || {};
 		geoGroup.userData.isGeoGroup = true;
 		if (geoGroup.userData.feature) {
@@ -1003,16 +1002,16 @@ Objects.prototype = {
 
 	_defaults: {
 		colors: {
-			red: new THREE.Color(0xff0000),
-			yellow: new THREE.Color(0xffff00),
-			green: new THREE.Color(0x00ff00),
-			black: new THREE.Color(0x000000)
+			red: new Color(0xff0000),
+			yellow: new Color(0xffff00),
+			green: new Color(0x00ff00),
+			black: new Color(0x000000)
 		},
 
 		materials: {
-			boxNormalMaterial: new THREE.LineBasicMaterial({ color: new THREE.Color(0xff0000) }),
-			boxOverMaterial: new THREE.LineBasicMaterial({ color: new THREE.Color(0xffff00) }),
-			boxSelectedMaterial: new THREE.LineBasicMaterial({ color: new THREE.Color(0x00ff00) })
+			boxNormalMaterial: new LineBasicMaterial({ color: new Color(0xff0000) }),
+			boxOverMaterial: new LineBasicMaterial({ color: new Color(0xffff00) }),
+			boxSelectedMaterial: new LineBasicMaterial({ color: new Color(0x00ff00) })
 		},
 
 		line: {
@@ -1089,7 +1088,7 @@ Objects.prototype = {
 			coordinates: [[[]]],
 			geometryOptions: {},
 			height: 100,
-			materials: new THREE.MeshPhongMaterial({ color: 0x660000, side: THREE.DoubleSide }),
+			materials: new MeshPhongMaterial({ color: 0x660000, side: DoubleSide }),
 			scale: 1,
 			rotation: 0,
 			units: 'scene',
@@ -1108,4 +1107,4 @@ Objects.prototype = {
 	}
 }
 
-module.exports = exports = Objects;
+export default Objects;

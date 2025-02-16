@@ -1,4 +1,2 @@
-module.exports = exports = {
-    Threebox: require('./src/Threebox'),
-    THREE: require('./src/three.js')
-}
+export { default as Threebox } from './src/Threebox';
+export * as THREE from 'three';

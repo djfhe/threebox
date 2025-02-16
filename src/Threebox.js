@@ -3,35 +3,42 @@
  * @author jscastro / https://github.com/jscastro76
  */
 
-const THREE = require("./three.js");
-const CameraSync = require("./camera/CameraSync.js");
-const utils = require("./utils/utils.js");
-const SunCalc = require("./utils/suncalc.js");
-const ThreeboxConstants = require("./utils/constants.js");
-const Objects = require("./objects/objects.js");
-const material = require("./utils/material.js");
-const sphere = require("./objects/sphere.js");
-const extrusion = require("./objects/extrusion.js");
-const label = require("./objects/label.js");
-const tooltip = require("./objects/tooltip.js");
-const loader = require("./objects/loadObj.js");
-const Object3D = require("./objects/Object3D.js");
-const line = require("./objects/line.js");
-const tube = require("./objects/tube.js");
-const LabelRenderer = require("./objects/LabelRenderer.js");
-const BuildingShadows = require("./objects/effects/BuildingShadows.js");
+import { WebGLRenderer, SRGBColorSpace, Scene, Group, Raycaster, PerspectiveCamera, OrthographicCamera, Vector2, AmbientLight, Color, DirectionalLight, DirectionalLightHelper, HemisphereLight } from "three";
+import CameraSync from "./camera/CameraSync.js";
+import * as utils from "./utils/utils.js";
+import { _validate, projectToWorld as _projectToWorld, degreeify, toDecimal, projectedUnitsPerMeter as _projectedUnitsPerMeter, getFeatureCenter as _getFeatureCenter, getObjectHeightOnFloor as _getObjectHeightOnFloor } from "./utils/utils.js";
+import SunCalc, { getPosition, getTimes } from "./utils/suncalc.js";
+import { WORLD_SIZE, FOV_DEGREES } from "./utils/constants.js";
+import * as ThreeboxConstants from "./utils/constants.js";
+import Objects from "./objects/objects.js";
+import material from "./utils/material.js";
+import sphere from "./objects/sphere.js";
+import extrusion from "./objects/extrusion.js";
+import label from "./objects/label.js";
+import tooltip from "./objects/tooltip.js";
+import loader from "./objects/loadObj.js";
+import Object3D from "./objects/Object3D.js";
+import line from "./objects/line.js";
+import tube from "./objects/tube.js";
+import LabelRenderer from "./objects/LabelRenderer.js";
+import BuildingShadows from "./objects/effects/BuildingShadows.js";
 
-function Threebox(map, glContext, options){
+class Threebox {
 
-    this.init(map, glContext, options);
 
-};
+	/**
+	 * Threebox constructor
+	 * @param {mapboxgl.map} map
+	 * @param {WebGLRenderingContext} glContext
+	 * @param {defaultOptions} options
+	 */
+	constructor(map, glContext, options) {
+		this.init(map, glContext, options);
+	}
 
-Threebox.prototype = {
-
-	repaint: function () {
+	repaint() {
 		this.map.repaint = true;
-	},
+	}
 
 	/**
 	 * Threebox constructor init method
@@ -39,10 +46,10 @@ Threebox.prototype = {
 	 * @param {WebGLRenderingContext} glContext
 	 * @param {defaultOptions} options
 	 */
-	init: function (map, glContext, options) {
+	init(map, glContext, options) {
 
 		// apply starter options
-		this.options = utils._validate(options || {}, defaultOptions);
+		this.options = _validate(options || {}, defaultOptions);
 
 		this.map = map;
 		this.map.tb = this; //[jscastro] needed if we want to queryRenderedFeatures from map.onload
@@ -52,7 +59,7 @@ Threebox.prototype = {
 		this.mapboxVersion = parseFloat(this.map.version); 
 
 		// Set up a THREE.js scene
-		this.renderer = new THREE.WebGLRenderer({
+		this.renderer = new WebGLRenderer({
 			alpha: true,
 			antialias: true,
 			preserveDrawingBuffer: options.preserveDrawingBuffer,
@@ -62,14 +69,14 @@ Threebox.prototype = {
 
 		this.renderer.setPixelRatio(window.devicePixelRatio);
 		this.renderer.setSize(this.map.getCanvas().clientWidth, this.map.getCanvas().clientHeight);
-		this.renderer.outputEncoding = THREE.sRGBEncoding;
+		this.renderer.outputEncoding = SRGBColorSpace;
 		this.renderer.autoClear = false;
 
 		// [jscastro] set labelRendered
 		this.labelRenderer = new LabelRenderer(this.map);
 
-		this.scene = new THREE.Scene();
-		this.world = new THREE.Group();
+		this.scene = new Scene();
+		this.world = new Group();
 		this.world.name = "world";
 		this.scene.add(this.world);
 
@@ -80,12 +87,12 @@ Threebox.prototype = {
 		this.orthographic = this.options.orthographic || false;
 
 		//raycaster for mouse events
-		this.raycaster = new THREE.Raycaster();
+		this.raycaster = new Raycaster();
 		this.raycaster.layers.set(0);
 		//this.raycaster.params.Points.threshold = 100;
 
 		this.mapCenter = this.map.getCenter();
-		this.mapCenterUnits = utils.projectToWorld([this.mapCenter.lng, this.mapCenter.lat]);
+		this.mapCenterUnits = _projectToWorld([this.mapCenter.lng, this.mapCenter.lat]);
 		this.lightDateTime = new Date();
 		this.lightLng = this.mapCenter.lng;
 		this.lightLat = this.mapCenter.lat;
@@ -457,7 +464,7 @@ Threebox.prototype = {
 				start = mousePos(e);
 				startCoords = this.draggedObject.coordinates;
 
-				rotationDiff = utils.degreeify(this.draggedObject.rotation);
+				rotationDiff = degreeify(this.draggedObject.rotation);
 				lngDiff = startCoords[0] - e.lngLat.lng;
 				latDiff = startCoords[1] - e.lngLat.lat;
 				altDiff = -this.draggedObject.modelHeight - (e.point.y * this.tb.altitudeStep);
@@ -509,13 +516,13 @@ Threebox.prototype = {
 				let obj = this.selectedObject;
 				if (shiftDown && e.which === sK && obj) {
 					//shift + sS
-					let dc = utils.toDecimal;
+					let dc = toDecimal;
 					if (!obj.help) {
 						let s = obj.modelSize;
 						let sf = 1;
 						if (obj.userData.units !== 'meters') {
 							//if not meters, calculate scale to the current lat
-							sf = utils.projectedUnitsPerMeter(obj.coordinates[1]);
+							sf = _projectedUnitsPerMeter(obj.coordinates[1]);
 							if (!sf) { sf = 1; };
 							sf = dc(sf, 7);
 						}
@@ -550,10 +557,10 @@ Threebox.prototype = {
 
 		});
 
-	},
+	}
 
 	//[jscastro] added property to manage an athmospheric sky layer
-	get sky() { return this.options.sky; },
+	get sky() { return this.options.sky; }
 	set sky(value) {
 		if (value) {
 			this.createSkyLayer();
@@ -562,10 +569,10 @@ Threebox.prototype = {
 			this.removeLayer(this.skyLayerName);
 		}
 		this.options.sky = value;
-	},
+	}
 
 	//[jscastro] added property to manage an athmospheric sky layer
-	get terrain() { return this.options.terrain; },
+	get terrain() { return this.options.terrain; }
 	set terrain(value) {
 		this.terrainLayerName = '';
 		if (value) {
@@ -580,12 +587,12 @@ Threebox.prototype = {
 			}
 		}
 		this.options.terrain = value;
-	},
+	}
 
 	//[jscastro] added property to manage FOV for perspective camera
-	get fov() { return this.options.fov;},
+	get fov() { return this.options.fov;}
 	set fov(value) {
-		if (this.camera instanceof THREE.PerspectiveCamera && this.options.fov !== value) {
+		if (this.camera instanceof PerspectiveCamera && this.options.fov !== value) {
 			this.map.transform.fov = value;
 			this.camera.fov = this.map.transform.fov;
 			this.cameraSync.setupCamera();
@@ -593,19 +600,19 @@ Threebox.prototype = {
 			this.options.fov = value;
 		}
 
-	},
+	}
 
 	//[jscastro] added property to manage camera type
-	get orthographic() { return this.options.orthographic; },
+	get orthographic() { return this.options.orthographic; }
 	set orthographic(value) {
 		const h = this.map.getCanvas().clientHeight;
 		const w = this.map.getCanvas().clientWidth;
 		if (value) {
 			this.map.transform.fov = 0;
-			this.camera = new THREE.OrthographicCamera(w / - 2, w / 2, h / 2, h / - 2, 0.1, 1e21);
+			this.camera = new OrthographicCamera(w / - 2, w / 2, h / 2, h / - 2, 0.1, 1e21);
 		} else {
 			this.map.transform.fov = this.fov;
-			this.camera = new THREE.PerspectiveCamera(this.map.transform.fov, w / h, 0.1, 1e21);
+			this.camera = new PerspectiveCamera(this.map.transform.fov, w / h, 0.1, 1e21);
 		}
 		this.camera.layers.enable(0);
 		this.camera.layers.enable(1);
@@ -617,10 +624,10 @@ Threebox.prototype = {
 		this.map.repaint = true; // repaint the map
 		this.options.orthographic = value;
 
-	},
+	}
 
 	//[jscastro] method to create an athmospheric sky layer
-	createSkyLayer: function () {
+	createSkyLayer () {
 		if (this.mapboxVersion < 2.0) { console.warn("Sky layer are only supported by Mapbox-gl-js > v2.0"); this.options.sky = false; return };
 
 		let layer = this.map.getLayer(this.skyLayerName);
@@ -654,10 +661,10 @@ Threebox.prototype = {
 				this.repaint();
 			});
 		}
-	},
+	}
 
 	//[jscastro] method to create a terrain layer
-	createTerrainLayer: function () {
+	createTerrainLayer () {
 		if (this.mapboxVersion < 2.0) { console.warn("Terrain layer are only supported by Mapbox-gl-js > v2.0"); this.options.terrain = false; return };
 		let layer = this.map.getTerrain();
 		if (!layer) {
@@ -676,36 +683,30 @@ Threebox.prototype = {
 			});
 
 		}
-	},
+	}
 
 	// Objects
-	sphere: function (options) {
+	sphere (options) {
 		this.setDefaultView(options, this.options);
 		return sphere(options, this.world)
-	},
+	}
 
-	line: line,
-
-	label: label,
-
-	tooltip: tooltip,
-
-	tube: function (options) {
+	tube (options) {
 		this.setDefaultView(options, this.options);
 		return tube(options, this.world)
-	},
+	}
 
-	extrusion: function (options) {
+	extrusion (options) {
 		this.setDefaultView(options, this.options);
 		return extrusion(options);
-	},
+	}
 
-	Object3D: function (options) {
+	Object3D (options) {
 		this.setDefaultView(options, this.options);
 		return Object3D(options)
-	},
+	}
 
-	loadObj: async function loadObj(options, cb) {
+	async loadObj(options, cb) {
 		this.setDefaultView(options, this.options);
 		if (options.clone === false) {
 			return new Promise(
@@ -743,53 +744,49 @@ Threebox.prototype = {
 
 			}
 		}
-	},
+	}
 
 	// Material
 
-	material: function (o) {
+	material (o) {
 		return material(o)
-	},
+	}
 
-	initLights : {
+	initLights = {
 		ambientLight: null,
 		dirLight: null,
 		dirLightBack: null,
 		dirLightHelper: null,
 		hemiLight: null,
 		pointLight: null
-	},
+	}
 
-	utils: utils,
+	Constants = ThreeboxConstants
 
-	SunCalc: SunCalc,
-
-	Constants: ThreeboxConstants,
-
-	projectToWorld: function (coords) {
+	projectToWorld (coords) {
 		return this.utils.projectToWorld(coords)
-	},
+	}
 
-	unprojectFromWorld: function (v3) {
+	unprojectFromWorld (v3) {
 		return this.utils.unprojectFromWorld(v3)
-	},
+	}
 
-	projectedUnitsPerMeter: function (lat) {
+	projectedUnitsPerMeter (lat) {
 		return this.utils.projectedUnitsPerMeter(lat)
-	},
+	}
 
 	//get the center point of a feature
-	getFeatureCenter: function getFeatureCenter(feature, obj, level) {
-		return utils.getFeatureCenter(feature, obj, level);
-	},
+	getFeatureCenter(feature, obj, level) {
+		return _getFeatureCenter(feature, obj, level);
+	}
 
-	getObjectHeightOnFloor: function (feature, obj, level) {
-		return utils.getObjectHeightOnFloor(feature, obj, level);
-	},
+	getObjectHeightOnFloor (feature, obj, level) {
+		return _getObjectHeightOnFloor(feature, obj, level);
+	}
 
-	queryRenderedFeatures: function (point) {
+	queryRenderedFeatures (point) {
 
-		let mouse = new THREE.Vector2();
+		let mouse = new Vector2();
 
 		// // scale mouse pixel position to a percentage of the screen's width and height
 		mouse.x = (point.x / this.map.transform.width) * 2 - 1;
@@ -801,10 +798,10 @@ Threebox.prototype = {
 		let intersects = this.raycaster.intersectObjects(this.world.children, true);
 
 		return intersects
-	},
+	}
 
 	//[jscastro] find 3D object of a mesh. this method is needed to know the object of a raycasted mesh
-	findParent3DObject: function (mesh) {
+	findParent3DObject (mesh){
 		//find the Parent Object3D of the mesh captured by Raytracer
 		var result;
 		mesh.object.traverseAncestors(function (m) {
@@ -814,10 +811,10 @@ Threebox.prototype = {
 				}
 		});
 		return result;
-	},
+	}
 
 	//[jscastro] method to replicate behaviour of map.setLayoutProperty when Threebox are affected
-	setLayoutProperty: function (layerId, name, value) {
+	setLayoutProperty (layerId, name, value) {
 		//first set layout property at the map
 		this.map.setLayoutProperty(layerId, name, value);
 		if (value !== null && value !== undefined) {
@@ -825,19 +822,19 @@ Threebox.prototype = {
 				this.world.children.filter(o => (o.layer === layerId)).forEach((o) => { o.visibility = value });
 			}
 		}
-	},
+	}
 
 	//[jscastro] Custom Layers doesn't work on minzoom and maxzoom attributes, and if the layer is including labels they don't hide either on minzoom
-	setLayerZoomRange: function (layerId, minZoomLayer, maxZoomLayer) {
+	setLayerZoomRange (layerId, minZoomLayer, maxZoomLayer) {
 		if (this.map.getLayer(layerId)) {
 			this.map.setLayerZoomRange(layerId, minZoomLayer, maxZoomLayer);
 			if (!this.zoomLayers.includes(layerId)) this.zoomLayers.push(layerId);
 			this.toggleLayer(layerId);
 		}
-	},
+	}
 
 	//[jscastro] method to set the height of all the objects in a level. this only works if the objects have a geojson feature
-	setLayerHeigthProperty: function (layerId, level) {
+	setLayerHeigthProperty (layerId, level) {
 		let layer = this.map.getLayer(layerId);
 		if (!layer) return;
 		if (layer.type == "fill-extrusion") {
@@ -858,22 +855,22 @@ Threebox.prototype = {
 				}
 			});
 		}
-	},
+	}
 
 	//[jscastro] method to set globally all the objects that are fixedScale
-	setObjectsScale: function () {
+	setObjectsScale () {
 		this.world.children.filter(o => (o.fixedZoom != null)).forEach((o) => { o.setObjectScale(this.map.transform.scale); });
-	},
+	}
 
 	//[jscastro] mapbox setStyle removes all the layers, including custom layers, so tb.world must be cleaned up too
-	setStyle: function (styleId, options) {
+	setStyle (styleId, options) {
 		this.clear().then(() => {
 			this.map.setStyle(styleId, options);
 		});
-	},
+	}
 
 	//[jscastro] method to toggle Layer visibility checking zoom range
-	toggleLayer: function (layerId, visible = true) {
+	toggleLayer (layerId, visible = true) {
 		let l = this.map.getLayer(layerId);
 		if (l) {
 			if (!visible) {
@@ -885,16 +882,16 @@ Threebox.prototype = {
 			if (l.maxzoom && z >= l.maxzoom) { this.toggle(l.id, false); return; };
 			this.toggle(l.id, true);
 		};
-	},
+	}
 
 	//[jscastro] method to toggle Layer visibility
-	toggle: function (layerId, visible) {
+	toggle (layerId, visible) {
 		//call
 		this.setLayoutProperty(layerId, 'visibility', (visible ? 'visible' : 'none'))
 		this.labelRenderer.toggleLabels(layerId, visible);
-	},
+	}
 
-	update: function () {
+	update () {
 
 		if (this.map.repaint) this.map.repaint = false
 
@@ -912,9 +909,9 @@ Threebox.prototype = {
 		// [jscastro] Render any label
 		this.labelRenderer.render(this.scene, this.camera);
 		if (this.options.passiveRendering === false) this.map.triggerRepaint();
-	},
+	}
 
-	add: function (obj, layerId, sourceId) {
+	add (obj, layerId, sourceId) {
 		//[jscastro] remove the tooltip if not enabled
 		if (!this.enableTooltips && obj.tooltip) { obj.tooltip.visibility = false };
 		this.world.add(obj);
@@ -928,23 +925,23 @@ Threebox.prototype = {
 				obj.visibility = (u || v === 'visible' ? true : false);
 			}
 		}
-	},
+	}
 
-	removeByName: function (name) {
+	removeByName (name) {
 		let obj = this.world.getObjectByName(name);
 		if (obj) this.remove(obj);
-	},
+	}
 
-	remove: function (obj) {
+	remove (obj) {
 		if (this.map.selectedObject && obj.uuid == this.map.selectedObject.uuid) this.map.unselectObject();
 		if (this.map.draggedObject && obj.uuid == this.map.draggedObject.uuid) this.map.draggedObject = null;
 		if (obj.dispose) obj.dispose();
 		this.world.remove(obj);
 		obj = null;
-	},
-
+	}
+	
 	//[jscastro] this clears tb.world in order to dispose properly the resources
-	clear: async function (layerId = null, dispose = false) {
+	async clear (layerId = null, dispose = false) {
 		return new Promise((resolve, reject) => {
 			let objects = [];
 			this.world.children.forEach(function (object) {
@@ -968,27 +965,27 @@ Threebox.prototype = {
 
 			resolve("clear");
 		});
-	},
+	}
 
 	//[jscastro] remove a layer clearing first the 3D objects from this layer in tb.world
-	removeLayer: function (layerId) {
+	removeLayer (layerId) {
 		this.clear(layerId, true).then( () => {
 			this.map.removeLayer(layerId);
 		});
-	},
+	}
 
 	//[jscastro] get the sun position (azimuth, altitude) from a given datetime, lng, lat
-	getSunPosition: function (date, coords) {
-		return SunCalc.getPosition(date || Date.now(), coords[1], coords[0]);  
-	},
+	getSunPosition (date, coords) {
+		return getPosition(date || Date.now(), coords[1], coords[0]);  
+	}
 
 	//[jscastro] get the sun times for sunrise, sunset, etc.. from a given datetime, lng, lat and alt
-	getSunTimes: function (date, coords) {
-		return SunCalc.getTimes(date, coords[1], coords[0], (coords[2] ? coords[2] : 0));
-	},
+	getSunTimes (date, coords) {
+		return getTimes(date, coords[1], coords[0], (coords[2] ? coords[2] : 0));
+	}
 
 	//[jscastro] set shadows for fill-extrusion layers
-	setBuildingShadows: function (options) {
+	setBuildingShadows (options) {
 		if (this.map.getLayer(options.buildingsLayerId)) {
 			let layer = new BuildingShadows(options, this);
 			this.map.addLayer(layer, options.buildingsLayerId);
@@ -996,10 +993,10 @@ Threebox.prototype = {
 		else {
 			console.warn("The layer '" + options.buildingsLayerId + "' does not exist in the map.");
 		}
-	},
+	}
 
 	//[jscastro] This method set the sun light for a given datetime and lnglat
-	setSunlight: function (newDate = new Date(), coords) {
+	setSunlight (newDate = new Date(), coords) {
 		if (!this.lights.dirLight || !this.options.realSunlight) {
 			console.warn("To use setSunlight it's required to set realSunlight : true in Threebox initial options.");
 			return;
@@ -1027,7 +1024,7 @@ Threebox.prototype = {
 		let azimuth = Math.PI + this.sunPosition.azimuth;
 		//console.log("Altitude: " + utils.degreeify(altitude) + ", Azimuth: " + (utils.degreeify(azimuth)));
 
-		let radius = ThreeboxConstants.WORLD_SIZE / 2;
+		let radius = WORLD_SIZE / 2;
 		let alt = Math.sin(altitude);
 		let altRadius = Math.cos(altitude);
 		let azCos = Math.cos(azimuth) * altRadius;
@@ -1051,9 +1048,9 @@ Threebox.prototype = {
 			}, { duration: 0 });
 			if (this.sky) { this.updateSunSky(this.getSunSky(date, this.sunPosition));}
 		}
-	},
+	}
 
-	getSunSky: function (date, sunPos) {
+	getSunSky (date, sunPos) {
 		if (!sunPos) {
 			var center = this.map.getCenter();
 			sunPos = this.getSunPosition(
@@ -1063,33 +1060,33 @@ Threebox.prototype = {
 		var sunAzimuth = 180 + (sunPos.azimuth * 180) / Math.PI;
 		var sunAltitude = 90 - (sunPos.altitude * 180) / Math.PI;
 		return [sunAzimuth, sunAltitude];
-	},
+	}
 
-	updateSunSky: function (sunPos) {
+	updateSunSky (sunPos) {
 		if (this.sky) {
 			// update the `sky-atmosphere-sun` paint property with the position of the sun based on the selected time
 			this.map.setPaintProperty(this.skyLayerName, 'sky-atmosphere-sun', sunPos);
 		}
-	},
+	}
 
-	updateSunGround: function (sunPos) {
+	updateSunGround (sunPos) {
 		if (this.terrainLayerName != '') {
 			// update the raster layer paint property with the position of the sun based on the selected time
 			this.map.setPaintProperty(this.terrainLayerName, 'raster-opacity', Math.max(Math.min(1, sunPos.altitude * 4), 0.25));
 		}
-	},
+	}
 
 	//[jscastro] this updates the directional light helper
-	updateLightHelper: function () {
+	updateLightHelper () {
 		if (this.lights.dirLightHelper) {
 			this.lights.dirLightHelper.position.setFromMatrixPosition(this.lights.dirLight.matrixWorld);
 			this.lights.dirLightHelper.updateMatrix();
 			this.lights.dirLightHelper.update();
 		}
-	},
+	}
 
 	//[jscastro] method to fully dispose the resources, watch out is you call this without navigating to other page
-	dispose: async function () {
+	async dispose () {
 
 		console.log(this.memory());
 		//console.log(window.performance.memory);
@@ -1112,31 +1109,31 @@ Threebox.prototype = {
 			//console.log(window.performance.memory);
 		});
 
-	},
+	}
 
-	defaultLights: function () {
+	defaultLights () {
 
-		this.lights.ambientLight = new THREE.AmbientLight(new THREE.Color('hsl(0, 0%, 100%)'), 0.75);
+		this.lights.ambientLight = new AmbientLight(new Color('hsl(0, 0%, 100%)'), 0.75);
 		this.scene.add(this.lights.ambientLight);
 
-		this.lights.dirLightBack = new THREE.DirectionalLight(new THREE.Color('hsl(0, 0%, 100%)'), 0.25);
+		this.lights.dirLightBack = new DirectionalLight(new Color('hsl(0, 0%, 100%)'), 0.25);
 		this.lights.dirLightBack.position.set(30, 100, 100);
 		this.scene.add(this.lights.dirLightBack);
 
-		this.lights.dirLight  = new THREE.DirectionalLight(new THREE.Color('hsl(0, 0%, 100%)'), 0.25);
+		this.lights.dirLight  = new DirectionalLight(new Color('hsl(0, 0%, 100%)'), 0.25);
 		this.lights.dirLight.position.set(-30, 100, -100);
 		this.scene.add(this.lights.dirLight);
 
-	},
+	}
 
-	realSunlight: function (helper = false) {
+	realSunlight (helper = false) {
 
 		this.renderer.shadowMap.enabled = true;
 		//this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-		this.lights.dirLight = new THREE.DirectionalLight(0xffffff, 1);
+		this.lights.dirLight = new DirectionalLight(0xffffff, 1);
 		this.scene.add(this.lights.dirLight);
 		if (helper) {
-			this.lights.dirLightHelper = new THREE.DirectionalLightHelper(this.lights.dirLight, 5);
+			this.lights.dirLightHelper = new DirectionalLightHelper(this.lights.dirLight, 5);
 			this.scene.add(this.lights.dirLightHelper);
 		}
 		let d2 = 1000; let r2 = 2; let mapSize2 = 8192;
@@ -1150,7 +1147,7 @@ Threebox.prototype = {
 		this.lights.dirLight.shadow.camera.visible = true;
 		this.lights.dirLight.shadow.camera.far = 400000000; 
 
-		this.lights.hemiLight = new THREE.HemisphereLight(new THREE.Color(0xffffff), new THREE.Color(0xffffff), 0.6);
+		this.lights.hemiLight = new HemisphereLight(new Color(0xffffff), new Color(0xffffff), 0.6);
 		this.lights.hemiLight.color.setHSL(0.661, 0.96, 0.12);
 		this.lights.hemiLight.groundColor.setHSL(0.11, 0.96, 0.14);
 		this.lights.hemiLight.position.set(0, 0, 50);
@@ -1162,20 +1159,19 @@ Threebox.prototype = {
 			this.repaint();
 		});
 
-	},
+	}
 
-	setDefaultView: function (options, defOptions) {
+	setDefaultView (options, defOptions) {
 		options.bbox = (options.bbox || options.bbox == null) && defOptions.enableSelectingObjects;
 		options.tooltip = (options.tooltip || options.tooltip == null) && defOptions.enableTooltips;
 		options.mapScale = this.map.transform.scale;
-	},
+	}
 
-	memory: function () { return this.renderer.info.memory },
+	memory () { return this.renderer.info.memory }
 
-	programs: function () { return this.renderer.info.programs.length },
+	programs () { return this.renderer.info.programs.length }
 
-	version: '2.2.7',
-
+	version = '2.2.7'
 }
 
 var defaultOptions = {
@@ -1192,9 +1188,9 @@ var defaultOptions = {
 	enableHelpTooltips: false,
 	multiLayer: false,
 	orthographic: false,
-	fov: ThreeboxConstants.FOV_DEGREES,
+	fov: FOV_DEGREES,
 	sky: false,
 	terrain: false
 }
-module.exports = exports = Threebox;
+export default Threebox;
 

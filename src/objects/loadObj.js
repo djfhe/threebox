@@ -2,13 +2,13 @@
  * @author peterqliu / https://github.com/peterqliu
  * @author jscastro / https://github.com/jscastro76
  */
-const utils = require("../utils/utils.js");
-const Objects = require('./objects.js');
-const OBJLoader = require("./loaders/OBJLoader.js");
-const MTLLoader = require("./loaders/MTLLoader.js");
-const FBXLoader = require("./loaders/FBXLoader.js");
-const GLTFLoader = require("./loaders/GLTFLoader.js");
-const ColladaLoader = require("./loaders/ColladaLoader.js");
+import { _validate, types } from "../utils/utils.js";
+import Object from './objects.js';
+import OBJLoader from "./loaders/OBJLoader.js";
+import MTLLoader from "./loaders/MTLLoader.js";
+import FBXLoader from "./loaders/FBXLoader.js";
+import GLTFLoader from "./loaders/GLTFLoader.js";
+import ColladaLoader from "./loaders/ColladaLoader.js";
 const objLoader = new OBJLoader();
 const materialLoader = new MTLLoader();
 const gltfLoader = new GLTFLoader();
@@ -18,7 +18,7 @@ const daeLoader = new ColladaLoader();
 function loadObj(options, cb, promise) {
 
 	if (options === undefined) return console.error("Invalid options provided to loadObj()");
-	options = utils._validate(options, Objects.prototype._defaults.loadObj);
+	options = _validate(options, Object.prototype._defaults.loadObj);
 
 	let loader;
 	if (!options.type) { options.type = 'mtl'; };
@@ -74,15 +74,15 @@ function loadObj(options, cb, promise) {
 			}
 			obj.animations = animations;
 			// [jscastro] options.rotation was wrongly used
-			const r = utils.types.rotation(options.rotation, [0, 0, 0]);
-			const s = utils.types.scale(options.scale, [1, 1, 1]);
+			const r = types.rotation(options.rotation, [0, 0, 0]);
+			const s = types.scale(options.scale, [1, 1, 1]);
 			obj.rotation.set(r[0], r[1], r[2]);
 			obj.scale.set(s[0], s[1], s[2]);
 			// [jscastro] normalize specular/metalness/shininess from meshes in FBX and GLB model as it would need 5 lights to illuminate them properly
 			if (options.normalize) { normalizeSpecular(obj); }
 			obj.name = "model";
-			let userScaleGroup = Objects.prototype._makeGroup(obj, options);
-			Objects.prototype._addMethods(userScaleGroup);
+			let userScaleGroup = Object.prototype._makeGroup(obj, options);
+			Object.prototype._addMethods(userScaleGroup);
 			//[jscastro] calculate automatically the pivotal center of the object
 			userScaleGroup.setAnchor(options.anchor);
 			//[jscastro] override the center calculated if the object has adjustments
@@ -134,4 +134,4 @@ function loadObj(options, cb, promise) {
 
 }
 
-module.exports = exports = loadObj;
+export default loadObj;
